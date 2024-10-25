@@ -23,9 +23,9 @@ const validateUser = (req, res, next) => {
 Router.get('/', (req, res) => {
     res.json({
         message: "Welcome to RESTfull API for Point of Sale",
-        author: "@Derida23",
-        documentation: "https://github.com/Derida23/PointOfSale-ExpressJS-API",
-        github: "github.com/Derida23"
+        author: "@Razeth",
+        documentation: "https://github.com/Pizeth/Express-POS",
+        github: "github.com/Pizeth"
     });
 })
 
