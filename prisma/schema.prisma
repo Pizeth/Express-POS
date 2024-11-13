@@ -1,0 +1,460 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+datasource db {
+  provider          = "postgresql"
+  url               = env("DATABASE_URL")
+  // directUrl         = env("DIRECT_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id              Int               @id @default(autoincrement())
+  username        String            @unique @db.VarChar(50)
+  email           String            @unique @db.VarChar(50) 
+  password        String        
+  avatar          String?           @db.VarChar(255)
+  profile         Profile?  
+  isBan           Boolean           @default(false)
+  enabledFlag     Boolean           @default(true)
+  role            Role              @default(USER)
+  createdBy       Int
+  creationDate    DateTime          @default(now()) @db.Timestamp(6)          
+  lastUpdatedBy   Int
+  lastUpdateDate  DateTime          @default(now()) @db.Timestamp(6)
+  objectVersionId Int
+}
+
+model Profile {
+  id              Int               @id @default(autoincrement())
+  first_name      String            @db.VarChar(50)
+  last_name       String            @db.VarChar(50)
+  sex             Sex       
+  dob             DateTime        
+  pob             String?           @db.VarChar(50)
+  address         String?           @db.VarChar(255)
+  phone           String?           @db.VarChar(255)
+  married         Boolean       
+  bio             String?       
+  userId          Int               @unique
+  Cashier         Cashier?
+  enabledFlag     Boolean           @default(true)
+  holdFlag        String?           @db.VarChar(1)
+  createdBy       Int
+  creationDate    DateTime          @default(now()) @db.Timestamp(6)          
+  lastUpdatedBy   Int
+  lastUpdateDate  DateTime          @default(now()) @db.Timestamp(6)
+  objectVersionId Int
+
+  // Relationships
+  User            User              @relation(fields: [userId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+}
+
+model Cashier {
+  id              Int               @id @default(autoincrement())
+  profileId       Int               @unique
+  cashierNumber   String            @unique @default(uuid())
+  cashierType     CashierType       
+  description     String?           @db.VarChar(255)
+  // loginUser       String?           @unique @db.VarChar(20)
+  // loginPassword   String?           @db.VarChar(100)
+  enabledFlag     Boolean           @default(true)
+  holdFlag        String?           @db.VarChar(1)
+  // startDate       DateTime
+  // endDate         DateTime?
+  createdBy       Int
+  creationDate    DateTime          @default(now()) @db.Timestamp(6)
+  lastUpdatedBy   Int
+  lastUpdateDate  DateTime          @default(now()) @db.Timestamp(6)
+  objectVersionId Int
+
+  // Relationships
+  orders          Order[] 
+  profile         Profile           @relation(fields: [profileId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+} 
+
+model Category {
+  id              Int               @id @default(autoincrement())
+  shortName       String            @unique @db.VarChar(30)
+  name            String            @unique @db.VarChar(200)
+  description     String?           @db.VarChar(255)
+  image           String?           @db.VarChar(255)
+  enabledFlag     Boolean           @default(true)
+  createdBy       Int
+  creationDate    DateTime          @default(now()) @db.Timestamp(6)
+  lastUpdatedBy   Int
+  lastUpdateDate  DateTime          @default(now()) @db.Timestamp(6)
+  objectVersionId Int
+
+  // Relationships
+  subCategories   SubCategory[]
+}
+
+model SubCategory {
+  id              Int               @id @default(autoincrement())
+  categoryId      Int         
+  shortName       String            @unique @db.VarChar(30)
+  name            String            @unique @db.VarChar(255)
+  description     String?           @db.VarChar(255)
+  image           String?           @db.VarChar(255)
+  enabledFlag     Boolean           @default(true)
+  createdBy       Int
+  creationDate    DateTime          @default(now()) @db.Timestamp(6)
+  lastUpdatedBy   Int
+  lastUpdateDate  DateTime          @default(now()) @db.Timestamp(6)
+  objectVersionId Int
+
+  // Relationships
+  category        Category          @relation(fields: [categoryId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  products        Product[]
+}
+
+model Manufacturer {
+  id              Int               @id @default(autoincrement())
+  name            String            @db.VarChar(255)
+  image           String?           @db.VarChar(255)
+  phone           String?           @db.VarChar(255)
+  enabledFlag     Boolean           @default(true)
+  createdBy       Int 
+  creationDate    DateTime          @default(now()) @db.Timestamp(6)          
+  lastUpdatedBy   Int 
+  lastUpdateDate  DateTime          @default(now()) @db.Timestamp(6)          @updatedAt
+  objectVersionId Int               @default(1)
+
+  // Relationships
+  Product Product[]
+}
+
+model ProductType {
+  id              Int               @id @default(autoincrement())
+  name            String            @db.VarChar(255)
+  image           String?           @db.VarChar(255)
+  enabledFlag     Boolean           @default(true)
+  createdBy       Int 
+  creationDate    DateTime          @default(now()) @db.Timestamp(6)          
+  lastUpdatedBy   Int 
+  lastUpdateDate  DateTime          @default(now()) @db.Timestamp(6)          @updatedAt
+  objectVersionId Int               @default(1)
+
+  // Relationships
+  Product Product[]   
+}
+
+model Product {
+  id              Int               @id @default(autoincrement())
+  subCategoryId   Int       
+  manufacturerId  Int
+  productTypeId   Int              
+  productCode     String            @unique @db.VarChar(30)
+  productName     String            @unique @db.VarChar(200)
+  shortDescription String?          @db.VarChar(255)
+  longDescription String?           @db.VarChar(500)    
+  barCode         String?           @unique @db.VarChar(30)
+  quantity        Int
+  referenceNumber String?           @unique @db.VarChar(30)
+  price           Decimal           @db.Decimal(7, 3)
+  currencyCode    String            @db.VarChar(30)
+  image           String            @db.VarChar(255)
+  // capacity        Float?       
+  // length          Float?       
+  // height          Float?       
+  // width           Float?       
+  enabledFlag     Boolean           @default(true)
+  createdBy       Int
+  creationDate    DateTime          @default(now()) @db.Timestamp(6)
+  lastUpdatedBy   Int
+  lastUpdateDate  DateTime          @default(now()) @db.Timestamp(6)
+  objectVersionId Int
+
+  // Relationships
+  subCategory     SubCategory       @relation(fields: [subCategoryId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  manufacturer    Manufacturer      @relation(fields: [manufacturerId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  productType     ProductType       @relation(fields: [productTypeId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  promoDetails    PromoDetail[]
+  transactions    ProductTransaction[]
+  orderLines      OrderLine[]
+}
+
+model PromoDetail {
+  id              Int               @id @default(autoincrement())
+  productId       Int
+  promotionId     Int
+  createdBy       Int
+  creationDate    DateTime          @default(now()) @db.Timestamp(6)
+  lastUpdatedBy   Int
+  lastUpdateDate  DateTime          @default(now()) @db.Timestamp(6)
+  objectVersionId Int
+
+  // Relationships
+  product         Product           @relation(fields: [productId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  promotion       Promotion         @relation(fields: [promotionId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+}
+
+model Promotion {
+  id              Int               @id @default(autoincrement())
+  promoCode       String            @db.VarChar(60)
+  name            String            @db.VarChar(255)
+  description     String?           @db.VarChar(255)
+  enabledFlag     Boolean           @default(true)
+  createdBy       Int
+  creationDate    DateTime          @default(now()) @db.Timestamp(6)
+  lastUpdatedBy   Int
+  lastUpdateDate  DateTime          @default(now()) @db.Timestamp(6)
+  objectVersionId Int
+
+  // Relationships
+  promoDetails    PromoDetail[]
+  invoices        Invoice[]
+}
+
+model ProductTransaction {
+  id              Int               @id @default(autoincrement())
+  warehouseId     Int       
+  productId       Int       
+  trxNumber       String            @unique @db.VarChar(100)
+  description     String?           @db.VarChar(255)
+  type            String            @db.VarChar(1)
+  quantity        Int?        
+  cancelFlag      String?           @db.VarChar(1)
+  canceledBy      Int?        
+  cancelReason    String?           @db.VarChar(1000)
+  createdBy       Int
+  creationDate    DateTime          @default(now()) @db.Timestamp(6)
+  lastUpdatedBy   Int
+  lastUpdateDate  DateTime          @default(now()) @db.Timestamp(6)
+  objectVersionId Int
+
+  // Relationships
+  warehouse       Warehouse         @relation(fields: [warehouseId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  product         Product           @relation(fields: [productId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+}
+
+model Warehouse {
+  id              Int               @id @default(autoincrement())
+  branchId        Int       
+  // parentId        Int?        
+  Quantity        Int
+  shortName       String            @unique @db.VarChar(30)
+  name            String            @unique @db.VarChar(255)
+  description     String?           @db.VarChar(255)
+  enabledFlag     Boolean           @default(true)
+  createdBy       Int
+  creationDate    DateTime          @default(now()) @db.Timestamp(6)
+  lastUpdatedBy   Int
+  lastUpdateDate  DateTime          @default(now()) @db.Timestamp(6)
+  objectVersionId Int
+
+  // Relationships
+  branch          StoreBranch         @relation(fields: [branchId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  transactions    ProductTransaction[]
+}
+
+model Store {
+  id              Int               @id @default(autoincrement())
+  countryCode     String            @db.VarChar(3)
+  shortName       String            @unique @db.VarChar(30)
+  name            String            @unique @db.VarChar(200)
+  description     String?           @db.VarChar(255)
+  enabledFlag     Boolean           @default(true)
+  createdBy       Int
+  creationDate    DateTime          @default(now()) @db.Timestamp(6)
+  lastUpdatedBy   Int
+  lastUpdateDate  DateTime          @default(now()) @db.Timestamp(6)
+  objectVersionId Int
+
+  branches        StoreBranch[]
+}
+
+model StoreBranch {        
+  id              Int               @id @default(autoincrement())
+  storeId         Int        
+  shortName       String            @unique @db.VarChar(50)
+  name            String            @unique @db.VarChar(100)
+  description     String?           @db.VarChar(255)
+  parentId        Int?         
+  managerId       Int?         
+  enabledFlag     Boolean           @default(true)     
+  createdBy       Int        
+  creationDate    DateTime          @default(now()) @db.Timestamp(6)         
+  lastUpdatedBy   Int        
+  lastUpdateDate  DateTime          @default(now()) @db.Timestamp(6)         
+  objectVersionId Int        
+
+  // Relationships      
+  store           Store             @relation(fields: [storeId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  warehouses      Warehouse[]
+  orders          Order[]
+}
+
+model Order { 
+  id              Int               @id @default(autoincrement())
+  branchId        Int       
+  cashierId       Int       
+  // customerId      Int       
+  orderType       String            @db.VarChar(1)
+  orderNumber     String            @unique @db.VarChar(30)
+  orderDate       DateTime        
+  status          String            @db.VarChar(30)
+  description     String?           @db.VarChar(255)
+  enabledFlag     Boolean           @default(true)
+  holdFlag        String?           @db.VarChar(1)
+  // giftwrapFlag    String?           @db.VarChar(1)
+  // giftwrapMessage String?           @db.VarChar(255)
+  createdBy       Int
+  creationDate    DateTime          @default(now()) @db.Timestamp(6)
+  lastUpdatedBy   Int
+  lastUpdateDate  DateTime          @default(now()) @db.Timestamp(6)
+  objectVersionId Int
+
+  // Relationships
+  branch          StoreBranch       @relation(fields: [branchId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  cashier         Cashier           @relation(fields: [cashierId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  // customer        Customer    @relation(fields: [customerId], references: [id])
+  orderLines      OrderLine[]
+  invoices        Invoice[]
+}
+
+model OrderLine {
+  id              Int               @id @default(autoincrement())
+  orderId         Int       
+  lineNum         Int       
+  lineType        String            @db.VarChar(1)
+  productId       Int       
+  serviceId       Int?        
+  price           Decimal?          @db.Decimal(7, 3)
+  quantity        Int?        
+  amount          Decimal?          @db.Decimal(7, 3)
+  description     String?           @db.VarChar(255)
+  cancelFlag      String?           @db.VarChar(1)
+  canceledBy      Int?        
+  cancelReason    String?           @db.VarChar(1000)      
+  createdBy       Int       
+  creationDate    DateTime          @default(now()) @db.Timestamp(6)        
+  lastUpdatedBy   Int       
+  lastUpdateDate  DateTime          @default(now()) @db.Timestamp(6)        
+  objectVersionId Int       
+
+  // Relationships
+  order           Order             @relation(fields: [orderId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  product         Product           @relation(fields: [productId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+}
+
+model Payment {
+  id              Int               @id @default(autoincrement())
+  payMethodId     Int       
+  invoiceId       Int       
+  paymentType     String            @db.VarChar(1)
+  paymentNumber   String            @db.VarChar(30)
+  description     String?           @db.VarChar(255)
+  paymentDate     DateTime        
+  paymentCurrency String            @db.VarChar(3)
+  amount          Decimal           @db.Decimal(7, 3)
+  status          String            @db.VarChar(1)
+  enabledFlag     Boolean           @default(true)   
+  createdBy       String            @db.VarChar(60)
+  creationDate    DateTime          @default(now()) @db.Timestamp(6)        
+  lastUpdatedBy   String            @db.VarChar(60)
+  lastUpdateDate  DateTime          @default(now()) @db.Timestamp(6)
+  objectVersionId Int
+
+  // Relationships
+  paymentMethod   PaymentMethod     @relation(fields: [payMethodId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  invoice         Invoice           @relation(fields: [invoiceId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+}
+
+model PaymentMethod {
+  id              Int               @id @default(autoincrement())
+  shortName       String?           @db.VarChar(30)
+  methodName      String            @db.VarChar(100)
+  methodType      String?           @db.VarChar(1)
+  description     String?           @db.VarChar(255)
+  cashFlag        String?           @db.VarChar(1)
+  defaultFlag     String?           @db.VarChar(1)
+  enabledFlag     Boolean           @default(true)
+  holdFlag        String?           @db.VarChar(1)
+  createdBy       Int
+  creationDate    DateTime          @default(now()) @db.Timestamp(6)
+  lastUpdatedBy   Int
+  lastUpdateDate  DateTime          @default(now()) @db.Timestamp(6)
+  objectVersionId Int
+
+  // Relationships
+  payments        Payment[]
+}
+
+model Invoice {
+  id              Int               @id @default(autoincrement())
+  orderId         Int       
+  promotionId     Int?        
+  invoiceNumber   String            @unique @db.VarChar(30)
+  description     String?           @db.VarChar(255)
+  amount          Decimal           @db.Decimal(7, 3)
+  currencyCode    String            @db.VarChar(3)
+  enabledFlag     Boolean           @default(true)
+  createdBy       Int
+  creationDate    DateTime          @default(now()) @db.Timestamp(6)
+  lastUpdatedBy   Int
+  lastUpdateDate  DateTime          @default(now()) @db.Timestamp(6)
+  objectVersionId Int
+
+  // Relationships
+  order           Order             @relation(fields: [orderId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  promotion       Promotion?        @relation(fields: [promotionId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  payments        Payment[]
+}
+
+enum Sex {
+  Male
+  Female
+  Bi
+}
+
+enum Role {
+  USER
+  CASHIER
+  MANAGER
+  ADMIN
+  SUPER_ADMIN
+}
+
+enum CashierType {
+  STAFF
+  MANAGER
+  OWNER
+}
+
+// model Customer {
+//   id               Int       @id @default(autoincrement())
+//   partyId          Int
+//   customerNumber   String    @unique @db.VarChar(30)
+//   description      String?   @db.VarChar(255)
+//   registeredDate   DateTime?
+//   enabledFlag      String    @db.VarChar(1)
+//   holdFlag         String?   @db.VarChar(1)
+//   startDate        DateTime
+//   endDate          DateTime?
+//   gender           String?   @db.VarChar(1)
+//   identifierType   String?   @db.VarChar(1)
+//   identifierNumber String?   @db.VarChar(100)
+//   mobileNumber     String    @unique @db.VarChar(30)
+//   phoneNumber      String?   @db.VarChar(30)
+//   address          String?   @db.VarChar(200)
+//   creditLimit      Decimal?  @db.Decimal(13, 2)
+//   childrenUnder18  String?   @db.VarChar(1)
+//   loginUser        String?   @unique @db.VarChar(20)
+//   loginPassword    String?   @db.VarChar(30)
+//   createdBy        Int
+//   creationDate     DateTime
+//   lastUpdatedBy    Int
+//   lastUpdateDate   DateTime
+//   objectVersionId  Int
+
+//   party            Party    @relation(fields: [partyId], references: [id])
+//   orders           Order[]
+// }

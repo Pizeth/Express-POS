@@ -2,22 +2,41 @@
   "name": "ark-weekone",
   "version": "1.0.0",
   "description": "Task Week One",
-  "main": "index.js",
+  "main": "dist/index.js",
+  "type": "module",
   "scripts": {
-    "dev": "npx nodemon server.js"
+    "dev": "npx nodemon server.js",
+    "build": "npx tsc",
+    "start1": "node dist/index.js",
+    "start": "tsx src/index.ts",
+    "dev1": "nodemon src/index.ts"
   },
   "author": "Derida",
   "license": "ISC",
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.689.0",
     "bcrypt": "^5.1.1",
     "body-parser": "^1.20.2",
     "cors": "^2.8.5",
     "dotenv": "^16.4.5",
-    "express": "^4.19.2",
+    "express": "^4.21.1",
     "jsonwebtoken": "^9.0.2",
     "morgan": "^1.10.0",
+    "multer": "^1.4.5-lts.1",
     "mysql": "^2.18.1",
     "mysql2": "^3.11.0",
-    "postgres": "^3.4.4"
+    "postgres": "^3.4.4",
+    "ra-data-simple-prisma": "^5.2.1"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.0",
+    "@types/node": "^22.9.0",
+    "concurrently": "^9.1.0",
+    "nodemon": "^3.1.7",
+    "prisma": "^5.22.0",
+    "ts-node": "^10.9.2",
+    "tsx": "^4.19.2",
+    "typescript": "^5.6.3",
+    "wrangler": "^3.86.1"
   }
 }
