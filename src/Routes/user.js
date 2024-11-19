@@ -10,14 +10,18 @@
 
 import express from "express";
 import controller from "../Controllers/user.js";
+import multer from "multer";
 
 const Router = express.Router();
+const upload = multer({ storage: multer.memoryStorage() });
 
 // Router.get("/", categoryController.getCategories);
 
+Router.get("/:username", controller.getUsername);
+Router.get("/email/:email", controller.getEmail);
 Router.get("/", controller.getUser);
 Router.get("/:id", controller.getUserId);
-Router.post("/register", controller.registerUser);
+Router.post("/register", upload.single("file"), controller.registerUser);
 Router.post("/login", controller.loginUser);
 // Router.post("/logout", controller.logoutUser);
 Router.put("/", controller.putUser);

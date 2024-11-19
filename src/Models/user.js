@@ -1,8 +1,10 @@
 // Models/category.js
 import prisma from "../Configs/connect.js";
 import bcrypt from "bcrypt";
+import upload from "./fileUpload.js";
 const salt = bcrypt.genSaltSync(10);
 import { getMaxPage } from "../Helpers/function.js";
+import { url } from "inspector";
 
 export const getUser = async (req) => {
   try {
@@ -34,35 +36,124 @@ export const getUserId = async (req) => {
   }
 };
 
-export const registerUser = async (req) => {
+export const getUsername = async (req) => {
+  try {
+    const username = req.params.username;
+    console.log(username);
+    const user = await prisma.user.findFirst({
+      where: {
+        username: { equals: username, mode: "insensitive" },
+      },
+    });
+    return user;
+  } catch (error) {
+    console.error("Error checking username: ", error);
+    throw error;
+  }
+};
+
+export const getEmail = async (req) => {
+  try {
+    const email = req.params.email;
+    console.log(email);
+    const user = await prisma.user.findFirst({
+      where: {
+        email: { equals: email, mode: "insensitive" },
+      },
+    });
+    return user;
+  } catch (error) {
+    console.error("Error checking email: ", error);
+    throw error;
+  }
+};
+
+// export const registerUser = async (req, res) => {
+//   try {
+//     const {
+//       username,
+//       email,
+//       password,
+//       role,
+//       createdBy,
+//       lastUpdatedBy,
+//       objectVersionId,
+//     } = req.body;
+
+//     upload
+//       .uploadFile(req, res, username)
+//       .then(async (response) => {
+//         // success(res, 200, response);
+//         const avatar = response.url;
+//         console.log(avatar);
+//         const pass = bcrypt.hashSync(password, salt);
+//         const user_data = await prisma.user.create({
+//           data: {
+//             username: username,
+//             email: email,
+//             password: pass,
+//             role: role,
+//             avatar: avatar,
+//             createdBy: Number(createdBy),
+//             lastUpdatedBy: Number(lastUpdatedBy),
+//             objectVersionId: Number(objectVersionId),
+//           },
+//         });
+//         return user_data;
+//       })
+//       .catch((err) => {
+//         console.log("error is" + err);
+//         // error(res, 400, err);
+//       });
+//   } catch (error) {
+//     console.log("error is" + error);
+//     throw error;
+//   }
+// };
+
+export const registerUser = async (req, res) => {
   try {
     const {
       username,
       email,
       password,
-      avatar,
       role,
       createdBy,
       lastUpdatedBy,
       objectVersionId,
     } = req.body;
+
+    // First upload the file and wait for the response
+    const uploadResponse = await upload.uploadFile(req, res, username);
+    let avatar = "";
+    if (uploadResponse.status == 200) {
+      avatar = uploadResponse.url;
+      console.log("avatar url: " + avatar);
+    } else {
+      console.log(uploadResponse);
+    }
+
+    // Hash password
     const pass = bcrypt.hashSync(password, salt);
+
+    // Create user in database
     const user_data = await prisma.user.create({
       data: {
         username: username,
         email: email,
         password: pass,
-        avatar: avatar,
         role: role,
+        avatar: avatar,
         createdBy: Number(createdBy),
         lastUpdatedBy: Number(lastUpdatedBy),
         objectVersionId: Number(objectVersionId),
       },
     });
+
     return user_data;
   } catch (error) {
-    console.log(error);
-    throw error;
+    console.error("Error in registerUser model:", error);
+    throw error; // Re-throw to be caught by the controller
   }
 };
 
@@ -172,6 +263,8 @@ export const deleteUser = async (req) => {
 export default {
   getUser,
   getUserId,
+  getUsername,
+  getEmail,
   registerUser,
   putUser,
   loginUser,

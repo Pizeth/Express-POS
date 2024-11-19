@@ -32,18 +32,74 @@ export const getUserId = (req, res) => {
     });
 };
 
-export const registerUser = (req, res) => {
-  const param = req.body;
-  if (param.username == null) return error(res, 400, "Username can't be empty");
-  if (param.password == null) return error(res, 400, "Password can't be empty");
+export const getUsername = (req, res) => {
   model
-    .registerUser(req)
+    .getUsername(req, res)
     .then((response) => {
-      success(res, 200, "User " + response.username + " created successfully");
+      if (response) {
+        success(res, 400, response.username + " is already exists!");
+      } else {
+        error(res, 200, "Available");
+      }
     })
     .catch((err) => {
       error(res, 400, err);
     });
+};
+
+export const getEmail = (req, res) => {
+  model
+    .getEmail(req, res)
+    .then((response) => {
+      if (response) {
+        success(res, 400, response.email + " is already exists!");
+      } else {
+        error(res, 200, "Available");
+      }
+    })
+    .catch((err) => {
+      error(res, 400, err);
+    });
+};
+
+// export const registerUser = (req, res) => {
+//   const param = req.body;
+//   console.log(param);
+//   if (param.username == null) return error(res, 400, "Username can't be empty");
+//   if (param.password == null) return error(res, 400, "Password can't be empty");
+//   model
+//     .registerUser(req, res)
+//     .then((response) => {
+//       console.log(response);
+//       success(res, 200, "User " + response + " created successfully");
+//     })
+//     .catch((err) => {
+//       console.log("le error is" + err);
+//       error(res, 400, err);
+//     });
+// };
+
+export const registerUser = async (req, res) => {
+  try {
+    const param = req.body;
+
+    // Validate required fields
+    if (!param.username) {
+      return error(res, 400, "Username can't be empty");
+    }
+    if (!param.password) {
+      return error(res, 400, "Password can't be empty");
+    }
+
+    // Call the model function and await its response
+    const response = await model.registerUser(req, res);
+
+    // Send success response
+    return success(res, 200, `User ${response.username} created successfully`);
+  } catch (err) {
+    console.error("Error in registerUser controller:", err);
+    return error(res, 400, err.message || "Registration failed");
+  }
 };
 
 export const putUser = (req, res) => {
@@ -160,6 +216,8 @@ export const deleteUser = (req, res) => {
 export default {
   getUser,
   getUserId,
+  getUsername,
+  getEmail,
   registerUser,
   putUser,
   loginUser,

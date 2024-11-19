@@ -7,7 +7,7 @@
 datasource db {
   provider          = "postgresql"
   url               = env("DATABASE_URL")
-  // directUrl         = env("DIRECT_URL")
+  directUrl         = env("DIRECT_URL")
 }
 
 generator client {
@@ -159,6 +159,7 @@ model Product {
   quantity        Int
   referenceNumber String?           @unique @db.VarChar(30)
   price           Decimal           @db.Decimal(7, 3)
+  salePrice       Decimal           @db.Decimal(7, 3)
   currencyCode    String            @db.VarChar(30)
   image           String            @db.VarChar(255)
   // capacity        Float?       

@@ -43,6 +43,7 @@ import jwt from "jsonwebtoken";
 import categoryRoutes from "./category.js";
 // import orderRoutes from "./order.js";
 import userRoutes from "./user.js";
+import uploadRoutes from "./fileUpload.js";
 import { error } from "../Helpers/form.js";
 
 const secretKey = process.env.SECRET_KEY || 270400;
@@ -73,5 +74,6 @@ Router.get("/", (req, res) => {
 Router.use("/category", validateUser, categoryRoutes);
 // Router.use("/order", validateUser, orderRoutes);
 Router.use("/user", userRoutes);
+Router.use("/upload", uploadRoutes);
 
 export default Router;
