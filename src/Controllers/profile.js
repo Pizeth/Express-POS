@@ -1,4 +1,4 @@
-import model from "../Models/subCategory.js";
+import model from "../Models/profile.js";
 import { success, error } from "../Helpers/form.js";
 import { fPagination } from "../Helpers/function.js";
 
@@ -21,7 +21,7 @@ export const getId = (req, res) => {
       if (response) {
         success(res, 200, response);
       } else {
-        error(res, 400, "Sub Category Not Found!");
+        error(res, 400, "Profile Not Found!");
       }
     })
     .catch((err) => {
@@ -44,11 +44,11 @@ export const post = async (req, res) => {
     return success(
       res,
       200,
-      `Sub Category ${response.name} created successfully!`
+      `Profile ${response.first_name} ${response.last_name} created successfully`
     );
   } catch (err) {
-    console.error("Error in post subcategory controller:", err);
-    return error(res, 400, err.message || "Post Sub Category failed!");
+    console.error("Error in registerUser controller:", err);
+    return error(res, 400, err.message || "Registration failed");
   }
 };
 
@@ -56,7 +56,11 @@ export const put = (req, res) => {
   model
     .put(req)
     .then((response) => {
-      success(res, 200, `Sub Category ${response.name} updated successfully`);
+      success(
+        res,
+        200,
+        `Profile ${response.first_name} ${response.last_name} updated successfully`
+      );
     })
     .catch((err) => {
       error(res, 400, err);
@@ -74,14 +78,14 @@ export const remove = (req, res) => {
             success(
               res,
               200,
-              `Sub Category ${response.name} deleted successfully`
+              `Profile ${response.first_name} ${response.last_name} deleted successfully`
             );
           })
           .catch((err) => {
             error(res, 400, err);
           });
       } else {
-        error(res, 400, "Sub Category Not Found");
+        error(res, 400, "Profile Not Found");
       }
     })
     .catch((err) => {

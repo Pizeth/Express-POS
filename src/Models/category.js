@@ -106,9 +106,10 @@
 
 // Models/category.js
 import prisma from "../Configs/connect.js";
+import upload from "./fileUpload.js";
 import { getMaxPage } from "../Helpers/function.js";
 
-export const getCategory = async (req) => {
+export const get = async (req) => {
   try {
     const allCategories = await prisma.category.findMany({
       include: {
@@ -121,50 +122,60 @@ export const getCategory = async (req) => {
   }
 };
 
-export const getCategoryId = async (req) => {
+export const getId = async (req) => {
   try {
-    const categoryId = Number(req.params.id);
-    const category = await prisma.category.findUnique({
+    const id = Number(req.params.id);
+    const result = await prisma.category.findUnique({
       where: {
-        id: categoryId,
+        id: id,
       },
       include: {
         subCategories: true,
       },
     });
-    return category;
+    return result;
   } catch (error) {
     throw error;
   }
 };
 
-export const postCategory = async (req) => {
+export const post = async (req, res) => {
   try {
     const {
       shortName,
       name,
+      description,
       createdBy,
       lastUpdatedBy,
       objectVersionId,
-      description,
     } = req.body;
-    const category = await prisma.category.create({
+
+    // First upload the file and wait for the response
+    const uploadResponse = await upload.uploadFile(req, res, shortName);
+    let image = "";
+    if (uploadResponse.status == 200) {
+      image = uploadResponse.url;
+      console.log("image url: " + image);
+    }
+
+    const result = await prisma.category.create({
       data: {
         shortName: shortName,
         name: name,
+        description: description,
+        image: image,
         createdBy: Number(createdBy),
         lastUpdatedBy: Number(lastUpdatedBy),
         objectVersionId: Number(objectVersionId),
-        description: description,
       },
     });
-    return category;
+    return result;
   } catch (error) {
     throw error;
   }
 };
 
-export const putCategory = async (req) => {
+export const put = async (req) => {
   try {
     const {
       id,
@@ -175,7 +186,7 @@ export const putCategory = async (req) => {
       objectVersionId,
       description,
     } = req.body;
-    const category = await prisma.category.update({
+    const result = await prisma.category.update({
       where: {
         id: Number(id),
       },
@@ -188,7 +199,7 @@ export const putCategory = async (req) => {
         description: description,
       },
     });
-    return category;
+    return result;
   } catch (error) {
     throw error;
   }
@@ -213,15 +224,15 @@ export const putCategory = async (req) => {
   // });
 };
 
-export const deleteCategory = async (req) => {
+export const remove = async (req) => {
   try {
-    const categoryId = Number(req.params.id);
-    const category = await prisma.category.delete({
+    const id = Number(req.params.id);
+    const result = await prisma.category.delete({
       where: {
-        id: Number(categoryId),
+        id: Number(id),
       },
     });
-    return category;
+    return result;
   } catch (error) {
     throw error;
   }
@@ -343,9 +354,9 @@ export const deleteCategory = async (req) => {
 
 // Optional: Default export with all methods
 export default {
-  getCategory,
-  getCategoryId,
-  postCategory,
-  putCategory,
-  deleteCategory,
+  get,
+  getId,
+  post,
+  put,
+  remove,
 };

@@ -17,11 +17,11 @@ export const uploadFile = async (req, res, fileName) => {
       return UploadError;
       // return res.status(400).json({ error: "No file uploaded" });
     }
-    const filenameDate =
-      fileName +
-      `_${new Date().toJSON().slice(0, 10)}_` +
-      timeFormatter.getUnixTimestamp();
-    console.log(filenameDate);
+    // const filenameDate =
+    //   fileName +
+    //   `_${new Date().toJSON().slice(0, 10)}_` +
+    //   timeFormatter.getUnixTimestamp();
+    // console.log(filenameDate);
     const file = req.file;
     // const fileName = `${Date.now()}-${file.originalname}`;
     const buffer = file.buffer;

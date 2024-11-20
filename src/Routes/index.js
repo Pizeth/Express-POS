@@ -41,7 +41,9 @@ import express from "express";
 import jwt from "jsonwebtoken";
 // import productRoutes from "./product.js";
 import categoryRoutes from "./category.js";
+import subCategory from "./subCategory.js";
 // import orderRoutes from "./order.js";
+import profileRoutes from "./profile.js";
 import userRoutes from "./user.js";
 import uploadRoutes from "./fileUpload.js";
 import { error } from "../Helpers/form.js";
@@ -72,7 +74,9 @@ Router.get("/", (req, res) => {
 // Routes with middleware
 // Router.use("/product", validateUser, productRoutes);
 Router.use("/category", validateUser, categoryRoutes);
+Router.use("/subCategory", validateUser, subCategory);
 // Router.use("/order", validateUser, orderRoutes);
+Router.use("/profile", profileRoutes);
 Router.use("/user", userRoutes);
 Router.use("/upload", uploadRoutes);
 

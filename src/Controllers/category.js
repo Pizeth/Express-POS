@@ -72,15 +72,14 @@
 // };
 
 // Controllers/category.js
-import categoryModel from "../Models/category.js";
+import model from "../Models/category.js";
 import { success, error } from "../Helpers/form.js";
 import { fPagination } from "../Helpers/function.js";
-import { response } from "express";
 
-export const getCategory = (req, res) => {
+export const get = (req, res) => {
   // const page = fPagination(req);
-  categoryModel
-    .getCategory(req)
+  model
+    .get(req)
     .then((response) => {
       success(res, 200, response);
     })
@@ -89,14 +88,14 @@ export const getCategory = (req, res) => {
     });
 };
 
-export const getCategoryId = (req, res) => {
-  categoryModel
-    .getCategoryId(req)
+export const getId = (req, res) => {
+  model
+    .getId(req)
     .then((response) => {
       if (response) {
         success(res, 200, response);
       } else {
-        error(res, 400, "ID Category Not Found");
+        error(res, 400, "Category Not Found");
       }
     })
     .catch((err) => {
@@ -104,18 +103,22 @@ export const getCategoryId = (req, res) => {
     });
 };
 
-export const postCategory = (req, res) => {
-  categoryModel
-    .postCategory(req)
+export const post = (req, res) => {
+  model
+    .post(req)
     .then((response) => {
-      success(res, 200, "Category name " + response.name + " success added");
+      success(
+        res,
+        200,
+        "Category name " + response.name + " added successfully!"
+      );
     })
     .catch((err) => {
       error(res, 400, err);
     });
 };
 
-export const putCategory = (req, res) => {
+export const put = (req, res) => {
   // categoryModel
   //   .getCategoryId(req)
   //   .then((response) => {
@@ -137,35 +140,35 @@ export const putCategory = (req, res) => {
   //     error(res, 400, err);
   //   });
 
-  categoryModel
-    .putCategory(req)
+  model
+    .put(req)
     .then((response) => {
-      if (response) success(res, 200, "Category success updated");
+      if (response) success(res, 200, "Category updated successfully!");
     })
     .catch((err) => {
       error(res, 400, err);
     });
 };
 
-export const deleteCategory = (req, res) => {
-  categoryModel
-    .getCategoryId(req)
+export const remove = (req, res) => {
+  model
+    .remove(req)
     .then((response) => {
       if (response) {
-        categoryModel
-          .deleteCategory(req)
+        model
+          .remove(req)
           .then((response) => {
             success(
               res,
               200,
-              "Category name " + response.name + " success delete"
+              "Category name " + response.name + " deleted successfully!"
             );
           })
           .catch((err) => {
             error(res, 400, err);
           });
       } else {
-        error(res, 400, "ID Product Not Found");
+        error(res, 400, "Category Not Found!");
       }
     })
     .catch((err) => {
@@ -175,9 +178,9 @@ export const deleteCategory = (req, res) => {
 
 // Optional: If you want to export all functions as a single object
 export default {
-  getCategory,
-  getCategoryId,
-  postCategory,
-  putCategory,
-  deleteCategory,
+  get,
+  getId,
+  post,
+  put,
+  remove,
 };

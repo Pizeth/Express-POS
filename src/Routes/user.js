@@ -17,7 +17,7 @@ const upload = multer({ storage: multer.memoryStorage() });
 
 // Router.get("/", categoryController.getCategories);
 
-Router.get("/:username", controller.getUsername);
+Router.get("/username/:username", controller.getUsername);
 Router.get("/email/:email", controller.getEmail);
 Router.get("/", controller.getUser);
 Router.get("/:id", controller.getUserId);

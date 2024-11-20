@@ -221,7 +221,7 @@ export const loginUser = async (req) => {
 export const deleteUser = async (req) => {
   try {
     const userId = Number(req.params.id);
-    const user = await prisma.category.delete({
+    const user = await prisma.user.delete({
       where: {
         id: Number(userId),
       },
