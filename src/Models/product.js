@@ -1,119 +1,192 @@
-const connection = require('../Configs/connect');
-const functionHelper = require ('../Helpers/function')
+import prisma from "../Configs/connect.js";
+import upload from "./fileUpload.js";
+import { getMaxPage } from "../Helpers/function.js";
 
-module.exports = {
-  // http://localhost:3030/product/?order=name&sort=DESC&page=1&content=4
-  getProduct: (req, page) => {
-      let sql = 'SELECT product.id, product.name, product.description, product.quantity, product.image, product.price, category.name AS category_name, product.date_add, product.date_update FROM product INNER JOIN category ON product.category_id = category.id'
-
-      const query = functionHelper.fSearchProduct(req, sql);
-      sql = functionHelper.fSorting(req, query.sql);
-
-      return new Promise ((resolve, reject) => {
-        functionHelper.getMaxPage(page, query.search, "product")
-          .then(maxPage => {
-            const infoPage = {
-              currentPage: page.page,
-              totalAllProduct: maxPage.totalProduct,
-              maxPage: maxPage.maxPage
-          };
-          connection.query(`${sql} LIMIT ? OFFSET ?`,
-            query.search == null ? [page.content, page.offset] : ['%' + query.search + '%', page.content, page.offset],
-            (err, data) => {
-              console.log(data);
-              if (!err) resolve( {infoPage, data});
-                else reject(err);
-              });
-            }).catch(err => {
-                reject(err);
-            });
-          });
-        },
-  getProductId: (req) => {
-    return new Promise ((resolve, reject) => {
-      const id = req.params.id;
-      const sql = 'SELECT product.id, product.name, product.description, product.quantity, product.image, product.price, category.name AS category_name, product.date_add, product.date_update FROM product INNER JOIN category ON product.category_id = category.id WHERE product.id=?'
-      connection.query (sql, [id], (err, response) => {
-          if (!err) {
-            resolve (response);
-          } else {
-            reject (err);
-          }
-        }
-      );
-    });
-  },
-  postProduct: req => {
-    return new Promise ((resolve, reject) => {
-      const body = req.body;
-      const checkCategoryId = 'SELECT id FROM category WHERE id=?'
-      const sql = 'INSERT INTO product SET name=?, description=?, quantity=?, image=?, price=?, category_id=?'
-
-      connection.query (checkCategoryId, [body.category_id],
-        (err, response) => {
-          if (response.length !=0 && body.price >= 0 && body.quantity >= 0){
-            connection.query (sql,
-            [body.name, body.description, body.quantity, body.image, body.price, body.category_id],
-            (err, response) => {
-              if (!err) {
-                resolve (response);
-              } else {
-                reject (err);
-              }
-            });
-          } else {
-            if(body.quantity < 0 || body.price < 0 ){
-              reject ("Quantity or Price dont below 0");
-            } else {
-              reject ("ID Category Not Found")
-            }
-            console.log(err);
-          }
-        });
-    });
-  },
-  putProduct: req => {
-    const body = req.body;
-    const checkCategoryId = 'SELECT id FROM category WHERE id=?';
-    const sql = 'UPDATE product SET name=?, description=?, quantity=?, image=?, price=?, category_id=? WHERE id=?';
-
-    return new Promise ((resolve, reject) => {
-      connection.query (checkCategoryId, [body.category_id],
-        (err, response) => {
-          if (response.length !=0 && body.price >= 0 && body.quantity >= 0 ){
-            connection.query (sql,
-            [body.name, body.description, body.quantity, body.image, body.price, body.category_id, body.id],
-            (err, response) => {
-              if (!err) {
-                resolve (response);
-              } else {
-                reject (err);
-                console.log(err);
-              }
-            })
-          } else {
-            if(body.quantity < 0 || body.price < 0 ){
-              reject ("Quantity / Price dont below 0");
-            } else {
-              reject ("ID Category Not Found")
-            }
-            console.log(err);
-          }
-        });
-      });
-    },
-  deleteProduct: req => {
-    return new Promise ((resolve, reject) => {
-      const id = req.params.id;
-      connection.query ('DELETE FROM product WHERE id=?', [id],
-        (err, response) => {
-          if (!err) {
-            resolve (response);
-          } else {
-            reject (err);
-          }
-        }
-      );
-    });
+export const get = async (req) => {
+  try {
+    const result = await prisma.product.findMany({});
+    return result;
+  } catch (error) {
+    throw error;
   }
+};
+
+export const getId = async (req) => {
+  try {
+    const id = Number(req.params.id);
+    const result = await prisma.product.findUnique({
+      where: {
+        id: id,
+      },
+    });
+    return result;
+  } catch (error) {
+    throw error;
+  }
+};
+
+export const post = async (req, res) => {
+  let fileName = "";
+  let image = "";
+  try {
+    const {
+      subCategoryId,
+      manufacturerId,
+      productTypeId,
+      productCode,
+      name,
+      shortName,
+      description,
+      longDescription,
+      barCode,
+      quantity,
+      referenceNumber,
+      price,
+      salePrice,
+      createdBy,
+      lastUpdatedBy,
+      objectVersionId,
+    } = req.body;
+
+    // First upload the file and wait for the response
+    const uploadResponse = await upload.uploadFile(req, res, name);
+    const image = uploadResponse.url;
+    if (image) {
+      fileName = uploadResponse.fileName;
+    }
+
+    // Create product in database
+    const result = await prisma.product.create({
+      data: {
+        subCategoryId: Number(subCategoryId),
+        manufacturerId: Number(manufacturerId),
+        productTypeId: Number(productTypeId),
+        productCode: productCode,
+        name: name,
+        shortName: shortName,
+        description: description,
+        longDescription: longDescription,
+        barCode: barCode,
+        quantity: Number(quantity),
+        referenceNumber: referenceNumber,
+        price: Number(price),
+        salePrice: salePrice,
+        image: image,
+        createdBy: Number(createdBy),
+        lastUpdatedBy: Number(lastUpdatedBy),
+        objectVersionId: Number(objectVersionId),
+      },
+    });
+
+    return result;
+  } catch (error) {
+    if (fileName) {
+      try {
+        const deleteResponse = await upload.deleteFile(fileName);
+        console.log(`Rolled back uploaded file: ${deleteResponse.fileName}`);
+      } catch (deleteError) {
+        console.error("Error rolling back file:", deleteError);
+      }
+    }
+    console.error("Error in post productType model:", error);
+    throw error; // Re-throw to be caught by the controller
+  }
+};
+
+export const put = async (req, res) => {
+  let fileName = "";
+  let imagePath = "";
+  try {
+    const {
+      id,
+      subCategoryId,
+      manufacturerId,
+      productTypeId,
+      productCode,
+      name,
+      shortName,
+      description,
+      longDescription,
+      barCode,
+      quantity,
+      referenceNumber,
+      price,
+      salePrice,
+      image,
+      createdBy,
+      lastUpdatedBy,
+      objectVersionId,
+    } = req.body;
+
+    // First upload the file and wait for the response
+    const uploadResponse = await upload.uploadFile(req, res, name);
+    imagePath = uploadResponse.url;
+    if (imagePath) {
+      console.log(`Image url: ${imagePath}`);
+      fileName = uploadResponse.fileName;
+    } else {
+      imagePath = image;
+    }
+
+    // Update product in database
+    const result = await prisma.product.update({
+      where: {
+        id: Number(id),
+      },
+      data: {
+        subCategoryId: Number(subCategoryId),
+        manufacturerId: Number(manufacturerId),
+        productTypeId: Number(productTypeId),
+        productCode: productCode,
+        name: name,
+        shortName: shortName,
+        description: description,
+        longDescription: longDescription,
+        barCode: barCode,
+        quantity: Number(quantity),
+        referenceNumber: referenceNumber,
+        price: Number(price),
+        salePrice: salePrice,
+        image: imagePath,
+        createdBy: Number(createdBy),
+        lastUpdatedBy: Number(lastUpdatedBy),
+        objectVersionId: Number(objectVersionId),
+      },
+    });
+
+    return result;
+  } catch (error) {
+    if (fileName) {
+      try {
+        const deleteResponse = await upload.deleteFile(fileName);
+        console.log(`Rolled back uploaded file: ${deleteResponse.fileName}`);
+      } catch (deleteError) {
+        console.error("Error rolling back file:", deleteError);
+      }
+    }
+    console.error("Error in put productType model:", error);
+    throw error;
+  }
+};
+
+export const remove = async (req) => {
+  try {
+    const id = Number(req.params.id);
+    const result = await prisma.product.delete({
+      where: {
+        id: Number(id),
+      },
+    });
+    return result;
+  } catch (error) {
+    throw error;
+  }
+};
+
+export default {
+  get,
+  getId,
+  post,
+  put,
+  remove,
 };

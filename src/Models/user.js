@@ -157,7 +157,7 @@ export const registerUser = async (req, res) => {
   }
 };
 
-export const putUser = async (req) => {
+export const putUser = async (req, res) => {
   try {
     const {
       id,
@@ -170,7 +170,16 @@ export const putUser = async (req) => {
       lastUpdatedBy,
       objectVersionId,
     } = req.body;
+
     const pass = bcrypt.hashSync(password, salt);
+
+    // First upload the file and wait for the response
+    const uploadResponse = await upload.uploadFile(req, res, shortName);
+    let image = avatar;
+    if (uploadResponse.status == 200) {
+      image = uploadResponse.url;
+    }
+
     const user_data = await prisma.user.update({
       where: {
         id: Number(id),
@@ -179,7 +188,7 @@ export const putUser = async (req) => {
         username: username,
         email: email,
         password: pass,
-        avatar: avatar,
+        avatar: image,
         role: role,
         createdBy: Number(createdBy),
         lastUpdatedBy: Number(lastUpdatedBy),

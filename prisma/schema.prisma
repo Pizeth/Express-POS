@@ -128,7 +128,7 @@ model Manufacturer {
   objectVersionId Int               @default(1)
 
   // Relationships
-  Product Product[]
+  products Product[]
 }
 
 model ProductType {
@@ -143,7 +143,7 @@ model ProductType {
   objectVersionId Int               @default(1)
 
   // Relationships
-  Product Product[]   
+  products Product[]   
 }
 
 model Product {
@@ -152,16 +152,17 @@ model Product {
   manufacturerId  Int
   productTypeId   Int              
   productCode     String            @unique @db.VarChar(30)
-  productName     String            @unique @db.VarChar(200)
-  shortDescription String?          @db.VarChar(255)
+  name            String            @unique @db.VarChar(200)
+  shortName       String            @unique @db.VarChar(200)
+  description     String?           @db.VarChar(255)
   longDescription String?           @db.VarChar(500)    
   barCode         String?           @unique @db.VarChar(30)
   quantity        Int
   referenceNumber String?           @unique @db.VarChar(30)
   price           Decimal           @db.Decimal(7, 3)
   salePrice       Decimal           @db.Decimal(7, 3)
-  currencyCode    String            @db.VarChar(30)
-  image           String            @db.VarChar(255)
+  // currencyCode    String            @db.VarChar(30)
+  image           String?            @db.VarChar(255)
   // capacity        Float?       
   // length          Float?       
   // height          Float?       

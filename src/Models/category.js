@@ -113,7 +113,11 @@ export const get = async (req) => {
   try {
     const allCategories = await prisma.category.findMany({
       include: {
-        subCategories: true,
+        subCategories: {
+          include: {
+            products: true,
+          },
+        },
       },
     });
     return allCategories;
@@ -130,7 +134,11 @@ export const getId = async (req) => {
         id: id,
       },
       include: {
-        subCategories: true,
+        subCategories: {
+          include: {
+            products: true,
+          },
+        },
       },
     });
     return result;
@@ -175,17 +183,26 @@ export const post = async (req, res) => {
   }
 };
 
-export const put = async (req) => {
+export const put = async (req, res) => {
   try {
     const {
       id,
       shortName,
       name,
+      description,
+      image,
       createdBy,
       lastUpdatedBy,
       objectVersionId,
-      description,
     } = req.body;
+
+    // First upload the file and wait for the response
+    const uploadResponse = await upload.uploadFile(req, res, shortName);
+    let imagePath = image;
+    if (uploadResponse.status == 200) {
+      imagePath = uploadResponse.url;
+    }
+
     const result = await prisma.category.update({
       where: {
         id: Number(id),
@@ -193,10 +210,11 @@ export const put = async (req) => {
       data: {
         shortName: shortName,
         name: name,
+        description: description,
+        image: imagePath,
         createdBy: Number(createdBy),
         lastUpdatedBy: Number(lastUpdatedBy),
         objectVersionId: Number(objectVersionId),
-        description: description,
       },
     });
     return result;

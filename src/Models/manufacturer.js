@@ -5,7 +5,7 @@ import { getMaxPage } from "../Helpers/function.js";
 
 export const get = async (req) => {
   try {
-    const result = await prisma.subCategory.findMany({
+    const result = await prisma.manufacturer.findMany({
       include: {
         products: true,
       },
@@ -19,7 +19,7 @@ export const get = async (req) => {
 export const getId = async (req) => {
   try {
     const id = Number(req.params.id);
-    const result = await prisma.subCategory.findUnique({
+    const result = await prisma.manufacturer.findUnique({
       where: {
         id: id,
       },
@@ -35,30 +35,20 @@ export const getId = async (req) => {
 
 export const post = async (req, res) => {
   try {
-    const {
-      categoryId,
-      shortName,
-      name,
-      description,
-      createdBy,
-      lastUpdatedBy,
-      objectVersionId,
-    } = req.body;
+    const { name, phone, createdBy, lastUpdatedBy, objectVersionId } = req.body;
 
     // First upload the file and wait for the response
-    const uploadResponse = await upload.uploadFile(req, res, shortName);
+    const uploadResponse = await upload.uploadFile(req, res, name);
     let image = "";
     if (uploadResponse.status == 200) {
       image = uploadResponse.url;
     }
 
-    // Create subCategory in database
-    const result = await prisma.subCategory.create({
+    // Create manufacturer in database
+    const result = await prisma.manufacturer.create({
       data: {
-        categoryId: Number(categoryId),
-        shortName: shortName,
         name: name,
-        description: description,
+        phone: phone,
         image: image,
         createdBy: Number(createdBy),
         lastUpdatedBy: Number(lastUpdatedBy),
@@ -68,7 +58,7 @@ export const post = async (req, res) => {
 
     return result;
   } catch (error) {
-    console.error("Error in post subCategory model:", error);
+    console.error("Error in post manufacturer model:", error);
     throw error; // Re-throw to be caught by the controller
   }
 };
@@ -77,10 +67,8 @@ export const put = async (req, res) => {
   try {
     const {
       id,
-      categoryId,
-      shortName,
       name,
-      description,
+      phone,
       image,
       createdBy,
       lastUpdatedBy,
@@ -88,22 +76,20 @@ export const put = async (req, res) => {
     } = req.body;
 
     // First upload the file and wait for the response
-    const uploadResponse = await upload.uploadFile(req, res, shortName);
+    const uploadResponse = await upload.uploadFile(req, res, name);
     let imagePath = image;
     if (uploadResponse.status == 200) {
       imagePath = uploadResponse.url;
     }
 
-    // Update subCategory in database
-    const result = await prisma.subCategory.update({
+    // Update manufacturer in database
+    const result = await prisma.manufacturer.update({
       where: {
         id: Number(id),
       },
       data: {
-        categoryId: Number(categoryId),
-        shortName: shortName,
         name: name,
-        description: description,
+        phone: phone,
         image: imagePath,
         createdBy: Number(createdBy),
         lastUpdatedBy: Number(lastUpdatedBy),
@@ -113,7 +99,7 @@ export const put = async (req, res) => {
 
     return result;
   } catch (error) {
-    console.error("Error in put subCategory model:", error);
+    console.error("Error in put manufacturer model:", error);
     throw error;
   }
 };
@@ -121,7 +107,7 @@ export const put = async (req, res) => {
 export const remove = async (req) => {
   try {
     const id = Number(req.params.id);
-    const result = await prisma.subCategory.delete({
+    const result = await prisma.manufacturer.delete({
       where: {
         id: Number(id),
       },

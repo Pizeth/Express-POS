@@ -1,5 +1,5 @@
 import express from "express";
-import controller from "../Controllers/subCategory.js";
+import controller from "../Controllers/manufacturer.js";
 import multer from "multer";
 
 const Router = express.Router();

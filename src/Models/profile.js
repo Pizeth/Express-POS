@@ -112,6 +112,7 @@ export const put = async (req) => {
     });
     return result;
   } catch (error) {
+    console.log(error);
     throw error;
   }
 };

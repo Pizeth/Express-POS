@@ -126,7 +126,7 @@ export const loginUser = (req, res) => {
       if (response) {
         if (bcrypt.compareSync(param.password, response.password)) {
           const token = jwt.sign({ id: response.id }, secretKey, {
-            expiresIn: "3h",
+            expiresIn: "24h",
           });
           success(res, {
             user_id: response.id,

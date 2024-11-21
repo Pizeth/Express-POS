@@ -27,14 +27,14 @@ export const uploadFile = async (req, res, fileName) => {
     const buffer = file.buffer;
     const mimetype = file.mimetype;
 
-    const fileMeta = r2.upload(
+    const fileMeta = await r2.upload(
       fileName +
         `_${new Date().toJSON().slice(0, 10)}_` +
         timeFormatter.getUnixTimestamp(),
       buffer,
       mimetype
     );
-    console.log("file name is" + fileName);
+
     // console.log("le file name is " + __filename);
     // console.log("le directory name is " + __dirname);
 
@@ -60,6 +60,16 @@ export const uploadFile = async (req, res, fileName) => {
   } catch (error) {
     console.error("Upload error:", error);
     res.status(500).json({ error: "Failed to upload file" });
+  }
+};
+
+export const deleteFile = async (fileName) => {
+  try {
+    const fileMeta = await r2.deleteFile(fileName);
+    return fileMeta;
+  } catch (error) {
+    console.error("Deleting file error:", error);
+    throw error;
   }
 };
 
@@ -96,4 +106,4 @@ export const uploadFile = async (req, res, fileName) => {
 //     }
 //   });
 
-export default { uploadFile };
+export default { uploadFile, deleteFile };
