@@ -4,7 +4,11 @@ import { getMaxPage } from "../Helpers/function.js";
 
 export const get = async (req) => {
   try {
-    const result = await prisma.product.findMany({});
+    const result = await prisma.product.findMany({
+      include: {
+        stocks: true,
+      },
+    });
     return result;
   } catch (error) {
     throw error;
@@ -18,6 +22,9 @@ export const getId = async (req) => {
       where: {
         id: id,
       },
+      include: {
+        stocks: true,
+      },
     });
     return result;
   } catch (error) {
@@ -27,7 +34,6 @@ export const getId = async (req) => {
 
 export const post = async (req, res) => {
   let fileName = "";
-  let image = "";
   try {
     const {
       subCategoryId,
@@ -41,8 +47,6 @@ export const post = async (req, res) => {
       barCode,
       quantity,
       referenceNumber,
-      price,
-      salePrice,
       createdBy,
       lastUpdatedBy,
       objectVersionId,
@@ -69,8 +73,6 @@ export const post = async (req, res) => {
         barCode: barCode,
         quantity: Number(quantity),
         referenceNumber: referenceNumber,
-        price: Number(price),
-        salePrice: salePrice,
         image: image,
         createdBy: Number(createdBy),
         lastUpdatedBy: Number(lastUpdatedBy),
