@@ -12,12 +12,12 @@ export const getQrCode = (data) => {
     size: process.env.QR_CODE_SIZE,
     error: process.env.QR_CODE_ERROR_CORRECTION,
   };
-  console.log(data);
-  console.log(qr);
-  console.log(
-    `${qr.url}?data=${data}&backcolor=${qr.backColor}&istransparent=${qr.transparent}&quietzone=${qr.quietZone}&quietunit=${qr.quietUnit}&size=${qr.size}&errorcorrection=${qr.error}`
-  );
-  return `${qr.url}?data=${data}&backcolor=${qr.backColor}&istransparent=${qr.transparent}&quietzone=${qr.quietZone}&quietunit=${qr.quietUnit}&size=${qr.size}&errorcorrection=${qr.error}`;
+
+  return `${qr.url}?data=${encodeURIComponent(data)}&backcolor=${
+    qr.backColor
+  }&istransparent=${qr.transparent}&quietzone=${qr.quietZone}&quietunit=${
+    qr.quietUnit
+  }&size=${qr.size}&errorcorrection=${qr.error}`;
 };
 
 export default { getQrCode };

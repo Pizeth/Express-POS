@@ -70,7 +70,7 @@
 // }
 
 // Helpers/function.js
-import connection from "../Configs/connect.js";
+import prisma from "../Configs/connect.js";
 
 export const fPagination = (req) => {
   const content = Number(req.query.content) || 10;
@@ -148,10 +148,139 @@ export const fSearchProduct = (req, sql) => {
   };
 };
 
+async function getPaginatedData({
+  model,
+  page = 1,
+  pageSize = 10,
+  orderBy = "id",
+  orderDirection = "asc",
+  select = null,
+  include = null,
+  where = {},
+}) {
+  // Default select if not provided
+  const defaultSelect = select || undefined;
+
+  // Fetch items
+  const items = await prisma[model].findMany({
+    where,
+    skip: (page - 1) * pageSize,
+    take: pageSize,
+    select: defaultSelect,
+    ...(include && { include }),
+    orderBy: {
+      [orderBy]: orderDirection,
+    },
+  });
+
+  // Get total count based on where conditions
+  const total = await prisma[model].count({ where });
+
+  // Calculate pagination metadata
+  const metadata = {
+    currentPage: page,
+    pageSize: pageSize,
+    totalItems: total,
+    totalPages: Math.ceil(total / pageSize),
+    hasNextPage: page * pageSize < total,
+    hasPreviousPage: page > 1,
+  };
+
+  return {
+    data: items,
+    metadata,
+  };
+}
+
 // Optional: Default export with all functions
 export default {
   fPagination,
   getMaxPage,
   fSorting,
   fSearchProduct,
+  getPaginatedData,
 };
+
+// // 1. Basic usage with Stock model
+// app.get("/api/stocks", async (req, res) => {
+//   try {
+//     const result = await getPaginatedData({
+//       model: "stock",
+//       page: parseInt(req.query.page) || 1,
+//       pageSize: parseInt(req.query.pageSize) || 10,
+//       select: {
+//         id: true,
+//         expiredDate: true,
+//         productId: true,
+//         Product: {
+//           select: {
+//             barCode: true,
+//           },
+//         },
+//       },
+//       include: {
+//         Product: true,
+//       },
+//     });
+
+//     res.json(result);
+//   } catch (error) {
+//     res.status(500).json({ error: "Failed to fetch stocks" });
+//   }
+// });
+
+// // 2. Usage with Product model
+// app.get("/api/products", async (req, res) => {
+//   try {
+//     const result = await getPaginatedData({
+//       model: "product",
+//       page: parseInt(req.query.page) || 1,
+//       pageSize: parseInt(req.query.pageSize) || 10,
+//       orderBy: "name",
+//       where: {
+//         enabledFlag: true,
+//       },
+//       select: {
+//         id: true,
+//         name: true,
+//         price: true,
+//         subCategory: {
+//           select: {
+//             name: true,
+//           },
+//         },
+//       },
+//     });
+
+//     res.json(result);
+//   } catch (error) {
+//     res.status(500).json({ error: "Failed to fetch products" });
+//   }
+// });
+
+// // 3. More complex filtering example
+// app.get("/api/orders", async (req, res) => {
+//   try {
+//     const result = await getPaginatedData({
+//       model: "order",
+//       page: parseInt(req.query.page) || 1,
+//       pageSize: parseInt(req.query.pageSize) || 10,
+//       where: {
+//         status: "COMPLETED",
+//         totalAmount: {
+//           gte: 100,
+//         },
+//       },
+//       orderBy: "createdAt",
+//       orderDirection: "desc",
+//       include: {
+//         customer: true,
+//         orderLines: true,
+//       },
+//     });
+
+//     res.json(result);
+//   } catch (error) {
+//     res.status(500).json({ error: "Failed to fetch orders" });
+//   }
+// });

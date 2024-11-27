@@ -1,4 +1,5 @@
 import prisma from "../Configs/connect.js";
+import stock from "./stock.js";
 import upload from "./fileUpload.js";
 import { getMaxPage } from "../Helpers/function.js";
 
@@ -47,6 +48,10 @@ export const post = async (req, res) => {
       barCode,
       quantity,
       referenceNumber,
+      price,
+      salePrice,
+      importedDate,
+      expiredDate,
       createdBy,
       lastUpdatedBy,
       objectVersionId,
@@ -59,28 +64,74 @@ export const post = async (req, res) => {
       fileName = uploadResponse.fileName;
     }
 
-    // Create product in database
-    const result = await prisma.product.create({
-      data: {
-        subCategoryId: Number(subCategoryId),
-        manufacturerId: Number(manufacturerId),
-        productTypeId: Number(productTypeId),
-        productCode: productCode,
-        name: name,
-        shortName: shortName,
-        description: description,
-        longDescription: longDescription,
-        barCode: barCode,
-        quantity: Number(quantity),
-        referenceNumber: referenceNumber,
-        image: image,
-        createdBy: Number(createdBy),
-        lastUpdatedBy: Number(lastUpdatedBy),
-        objectVersionId: Number(objectVersionId),
-      },
+    // Use Prisma transaction to ensure atomic product and stock creation
+    const result = await prisma.$transaction(async (prisma) => {
+      // Create product in database
+      const product = await prisma.product.create({
+        data: {
+          subCategoryId: Number(subCategoryId),
+          manufacturerId: Number(manufacturerId),
+          productTypeId: Number(productTypeId),
+          productCode: productCode,
+          name: name,
+          shortName: shortName,
+          description: description,
+          longDescription: longDescription,
+          barCode: barCode,
+          quantity: Number(quantity),
+          referenceNumber: referenceNumber,
+          image: image,
+          createdBy: Number(createdBy),
+          lastUpdatedBy: Number(lastUpdatedBy),
+          objectVersionId: Number(objectVersionId),
+        },
+      });
+
+      // Prepare stock data to match the stock model's post function structure
+      const stockReq = {
+        body: {
+          productId: product.id,
+          quantity: product.quantity,
+          importedDate: importedDate,
+          expiredDate: expiredDate,
+          price: Number(price),
+          salePrice: Number(salePrice),
+          createdBy: product.createdBy,
+          lastUpdatedBy: product.lastUpdatedBy,
+          objectVersionId: product.objectVersionId,
+        },
+      };
+
+      // Create stock entry using the existing stock model's post function
+      const stockResult = await stock.post(stockReq);
+
+      return { product, stockResult };
     });
 
-    return result;
+    return result.product;
+
+    // // Create product in database
+    // const result = await prisma.product.create({
+    //   data: {
+    //     subCategoryId: Number(subCategoryId),
+    //     manufacturerId: Number(manufacturerId),
+    //     productTypeId: Number(productTypeId),
+    //     productCode: productCode,
+    //     name: name,
+    //     shortName: shortName,
+    //     description: description,
+    //     longDescription: longDescription,
+    //     barCode: barCode,
+    //     quantity: Number(quantity),
+    //     referenceNumber: referenceNumber,
+    //     image: image,
+    //     createdBy: Number(createdBy),
+    //     lastUpdatedBy: Number(lastUpdatedBy),
+    //     objectVersionId: Number(objectVersionId),
+    //   },
+    // });
+
+    // return result;
   } catch (error) {
     if (fileName) {
       try {
@@ -90,7 +141,7 @@ export const post = async (req, res) => {
         console.error("Error rolling back file:", deleteError);
       }
     }
-    console.error("Error in post productType model:", error);
+    console.error("Error in post product model:", error);
     throw error; // Re-throw to be caught by the controller
   }
 };
@@ -166,7 +217,7 @@ export const put = async (req, res) => {
         console.error("Error rolling back file:", deleteError);
       }
     }
-    console.error("Error in put productType model:", error);
+    console.error("Error in put product model:", error);
     throw error;
   }
 };

@@ -1,5 +1,6 @@
 import prisma from "../Configs/connect.js";
 import qr from "../Configs/qrCode.js";
+import qr from "../model/stock.js";
 import pagination from "../Helpers/function.js";
 
 export const get = async (req) => {
@@ -10,22 +11,6 @@ export const get = async (req) => {
       page: parseInt(req.query.page) || 1,
       pageSize: parseInt(req.query.pageSize) || 10,
     });
-    console.log(await result);
-    result.map((data) => ({
-      id: data.id,
-      productId: data.productId,
-      quantity: data.quantity,
-      price: data.price,
-      salePrice: data.salePrice,
-      importedDate: data.importedDate,
-      expiredDate: data.expiredDate,
-      qrCode: data.qrCode,
-      createdBy: data.createdBy,
-      creationDate: data.creationDate,
-      lastUpdatedBy: data.lastUpdatedBy,
-      lastUpdateDate: data.lastUpdateDate,
-      objectVersionId: data.objectVersionId,
-    }));
     return result;
   } catch (error) {
     console.error("Failed to fetch stock:", error);
@@ -43,7 +28,6 @@ export const getId = async (req) => {
     });
     return result;
   } catch (error) {
-    console.error("Failed to fetch stockId:", error);
     throw error;
   }
 };
@@ -85,6 +69,7 @@ export const post = async (req) => {
       salePrice,
       createdBy,
       lastUpdatedBy,
+      objectVersionId,
     } = req.body;
 
     const metadata = {
@@ -118,6 +103,7 @@ export const post = async (req) => {
           qrCode: qrCode,
           createdBy: Number(createdBy),
           lastUpdatedBy: Number(lastUpdatedBy),
+          objectVersionId: Number(objectVersionId),
         },
       });
 
@@ -156,6 +142,7 @@ export const put = async (req, res) => {
       salePrice,
       createdBy,
       lastUpdatedBy,
+      objectVersionId,
     } = req.body;
 
     const metadata = {
@@ -194,7 +181,7 @@ export const put = async (req, res) => {
           qrCode: qrCode,
           createdBy: Number(createdBy),
           lastUpdatedBy: Number(lastUpdatedBy),
-          objectVersionId: { increment: 1 },
+          objectVersionId: Number(objectVersionId),
         },
       });
 

@@ -21,14 +21,15 @@ model User {
   password        String        
   avatar          String?           @db.VarChar(255)
   profile         Profile?  
-  isBan           Boolean           @default(false)
-  enabledFlag     Boolean           @default(true)
+  isBan           Boolean           @default(false) @map("is_ban")
+  enabledFlag     Boolean           @default(true) @map("enabled_flag")
   role            Role              @default(USER)
-  createdBy       Int
-  creationDate    DateTime          @default(now()) @db.Timestamp(6)          
-  lastUpdatedBy   Int
-  lastUpdateDate  DateTime          @default(now()) @db.Timestamp(6)
-  objectVersionId Int
+  createdBy       Int               @map("created_by")
+  creationDate    DateTime          @default(now()) @db.Timestamp(6) @map("creation_date")         
+  lastUpdatedBy   Int               @map("last_updated_by")
+  lastUpdateDate  DateTime          @default(now()) @db.Timestamp(6) @updatedAt @map("last_updated_date")
+  objectVersionId Int               @default(1) @map("object_version_id")
+  @@map("users")
 }
 
 model Profile {
@@ -42,77 +43,81 @@ model Profile {
   phone           String?           @db.VarChar(255)
   married         Boolean       
   bio             String?       
-  userId          Int               @unique
+  userId          Int               @unique @map("user_id")
   Cashier         Cashier?
-  enabledFlag     Boolean           @default(true)
-  holdFlag        String?           @db.VarChar(1)
-  createdBy       Int
-  creationDate    DateTime          @default(now()) @db.Timestamp(6)          
-  lastUpdatedBy   Int
-  lastUpdateDate  DateTime          @default(now()) @db.Timestamp(6)
-  objectVersionId Int
+  enabledFlag     Boolean           @default(true) @map("enabled_flag")
+  holdFlag        String?           @db.VarChar(1) @map("hold_flag")
+  createdBy       Int               @map("created_by")
+  creationDate    DateTime          @default(now()) @db.Timestamp(6) @map("creation_date")         
+  lastUpdatedBy   Int               @map("last_updated_by")
+  lastUpdateDate  DateTime          @default(now()) @db.Timestamp(6) @updatedAt @map("last_updated_date")
+  objectVersionId Int               @default(1) @map("object_version_id")
 
   // Relationships
   User            User              @relation(fields: [userId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  @@map("profiles")
 }
 
 model Cashier {
   id              Int               @id @default(autoincrement())
-  profileId       Int               @unique
-  cashierNumber   String            @unique @default(uuid())
-  cashierType     CashierType       
+  profileId       Int               @unique @map("profile_id")
+  cashierNumber   String            @unique @default(uuid()) @map("cashier_number")
+  cashierType     CashierType       @map("cashier_type")
   description     String?           @db.VarChar(255)
   // loginUser       String?           @unique @db.VarChar(20)
   // loginPassword   String?           @db.VarChar(100)
-  enabledFlag     Boolean           @default(true)
-  holdFlag        String?           @db.VarChar(1)
+  enabledFlag     Boolean           @default(true) @map("enabled_flag")
+  holdFlag        String?           @db.VarChar(1) @map("hold_flag")
   // startDate       DateTime
   // endDate         DateTime?
-  createdBy       Int
-  creationDate    DateTime          @default(now()) @db.Timestamp(6)
-  lastUpdatedBy   Int
-  lastUpdateDate  DateTime          @default(now()) @db.Timestamp(6)
-  objectVersionId Int
+  createdBy       Int               @map("created_by")
+  creationDate    DateTime          @default(now()) @db.Timestamp(6) @map("creation_date")         
+  lastUpdatedBy   Int               @map("last_updated_by")
+  lastUpdateDate  DateTime          @default(now()) @db.Timestamp(6) @updatedAt @map("last_updated_date")
+  objectVersionId Int               @default(1) @map("object_version_id")
 
   // Relationships
   orders          Order[] 
   profile         Profile           @relation(fields: [profileId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  @@map("cashiers")    
 } 
 
 model Category {
-  id              Int               @id @default(autoincrement())
+  id              Int               @id @default(autoincrement()) @map("short_name")
   shortName       String            @unique @db.VarChar(30)
   name            String            @unique @db.VarChar(200)
   description     String?           @db.VarChar(255)
   image           String?           @db.VarChar(255)
-  enabledFlag     Boolean           @default(true)
-  createdBy       Int
-  creationDate    DateTime          @default(now()) @db.Timestamp(6)
-  lastUpdatedBy   Int
-  lastUpdateDate  DateTime          @default(now()) @db.Timestamp(6)
-  objectVersionId Int
+  enabledFlag     Boolean           @default(true) @map("enabled_flag")
+  createdBy       Int               @map("created_by")
+  creationDate    DateTime          @default(now()) @db.Timestamp(6) @map("creation_date")         
+  lastUpdatedBy   Int               @map("last_updated_by")
+  lastUpdateDate  DateTime          @default(now()) @db.Timestamp(6) @updatedAt @map("last_updated_date")
+  objectVersionId Int               @default(1) @map("object_version_id")
 
   // Relationships
-  subCategories   SubCategory[]
+  subCategories   SubCategory[]     
+  @@map("categories")
 }
 
 model SubCategory {
   id              Int               @id @default(autoincrement())
-  categoryId      Int         
-  shortName       String            @unique @db.VarChar(30)
+  categoryId      Int               @map("category_id")
+  shortName       String            @unique @db.VarChar(30) @map("short_name")
   name            String            @unique @db.VarChar(255)
   description     String?           @db.VarChar(255)
   image           String?           @db.VarChar(255)
-  enabledFlag     Boolean           @default(true)
-  createdBy       Int
-  creationDate    DateTime          @default(now()) @db.Timestamp(6)
-  lastUpdatedBy   Int
-  lastUpdateDate  DateTime          @default(now()) @db.Timestamp(6)
-  objectVersionId Int
+  enabledFlag     Boolean           @default(true) @map("enabled_flag")
+  createdBy       Int               @map("created_by")
+  creationDate    DateTime          @default(now()) @db.Timestamp(6) @map("creation_date")         
+  lastUpdatedBy   Int               @map("last_updated_by")
+  lastUpdateDate  DateTime          @default(now()) @db.Timestamp(6) @updatedAt @map("last_updated_date")
+  objectVersionId Int               @default(1) @map("object_version_id")
 
   // Relationships
   category        Category          @relation(fields: [categoryId], references: [id], onDelete: NoAction, onUpdate: NoAction)
   products        Product[]
+  @@map("sub_categories")
 }
 
 model Manufacturer {
@@ -120,45 +125,47 @@ model Manufacturer {
   name            String            @db.VarChar(255)
   image           String?           @db.VarChar(255)
   phone           String?           @db.VarChar(255)
-  enabledFlag     Boolean           @default(true)
-  createdBy       Int 
-  creationDate    DateTime          @default(now()) @db.Timestamp(6)          
-  lastUpdatedBy   Int 
-  lastUpdateDate  DateTime          @default(now()) @db.Timestamp(6)          @updatedAt
-  objectVersionId Int               @default(1)
+  enabledFlag     Boolean           @default(true) @map("enabled_flag")
+  createdBy       Int               @map("created_by")
+  creationDate    DateTime          @default(now()) @db.Timestamp(6) @map("creation_date")         
+  lastUpdatedBy   Int               @map("last_updated_by")
+  lastUpdateDate  DateTime          @default(now()) @db.Timestamp(6) @updatedAt @map("last_updated_date")
+  objectVersionId Int               @default(1) @map("object_version_id")
 
   // Relationships
   products Product[]
+  @@map("manufacturers")
 }
 
 model ProductType {
   id              Int               @id @default(autoincrement())
   name            String            @db.VarChar(255)
   image           String?           @db.VarChar(255)
-  enabledFlag     Boolean           @default(true)
-  createdBy       Int 
-  creationDate    DateTime          @default(now()) @db.Timestamp(6)          
-  lastUpdatedBy   Int 
-  lastUpdateDate  DateTime          @default(now()) @db.Timestamp(6)          @updatedAt
-  objectVersionId Int               @default(1)
+  enabledFlag     Boolean           @default(true) @map("enabled_flag")
+  createdBy       Int               @map("created_by")
+  creationDate    DateTime          @default(now()) @db.Timestamp(6) @map("creation_date")         
+  lastUpdatedBy   Int               @map("last_updated_by")
+  lastUpdateDate  DateTime          @default(now()) @db.Timestamp(6) @updatedAt @map("last_updated_date")
+  objectVersionId Int               @default(1) @map("object_version_id")
 
   // Relationships
   products Product[]   
+  @@map("product_types")
 }
 
 model Product {
   id              Int               @id @default(autoincrement())
-  subCategoryId   Int       
-  manufacturerId  Int
-  productTypeId   Int              
-  productCode     String            @unique @db.VarChar(30)
+  subCategoryId   Int               @map("sub_category_id")
+  manufacturerId  Int               @map("manufacturer_id")
+  productTypeId   Int               @map("product_type_id")
+  productCode     String?           @unique @db.VarChar(30) @map("product_code")
   name            String            @unique @db.VarChar(200)
-  shortName       String            @unique @db.VarChar(200)
-  description     String?           @db.VarChar(255)
-  longDescription String?           @db.VarChar(500)    
-  barCode         String?           @unique @db.VarChar(30)
+  shortName       String            @unique @db.VarChar(200) @map("short_name")
+  description     String?           @db.VarChar(255) @map("description")
+  longDescription String?           @db.VarChar(500) @map("long_description")    
+  barcode         String?           @unique @db.VarChar(30)
   quantity        Int
-  referenceNumber String?           @unique @db.VarChar(30)
+  referenceNumber String?           @unique @db.VarChar(30) @map("reference_number")
   // price           Decimal           @db.Decimal(7, 3)
   // salePrice       Decimal           @db.Decimal(7, 3)
   // currencyCode    String            @db.VarChar(30)
@@ -167,12 +174,12 @@ model Product {
   // length          Float?       
   // height          Float?       
   // width           Float?       
-  enabledFlag     Boolean           @default(true)
-  createdBy       Int
-  creationDate    DateTime          @default(now()) @db.Timestamp(6)
-  lastUpdatedBy   Int
-  lastUpdateDate  DateTime          @default(now()) @db.Timestamp(6)
-  objectVersionId Int
+  enabledFlag     Boolean           @default(true) @map("enabled_flag")
+  createdBy       Int               @map("created_by")
+  creationDate    DateTime          @default(now()) @db.Timestamp(6) @map("creation_date")         
+  lastUpdatedBy   Int               @map("last_updated_by")
+  lastUpdateDate  DateTime          @default(now()) @db.Timestamp(6) @updatedAt @map("last_updated_date")
+  objectVersionId Int               @default(1) @map("object_version_id")
 
   // Relationships
   subCategory     SubCategory       @relation(fields: [subCategoryId], references: [id], onDelete: NoAction, onUpdate: NoAction)
@@ -182,156 +189,169 @@ model Product {
   transactions    ProductTransaction[]
   orderLines      OrderLine[]
   stocks          Stock[]
+  @@map("products")
 }
 
 model Stock {
   id              Int               @id @default(autoincrement())
-  productId       Int
-  qantity         Int
+  productId       Int               @map("product_id")
+  quantity        Int
   price           Decimal           @db.Decimal(7, 3)
-  salePrice       Decimal?          @db.Decimal(7, 3)
-  importedDate    DateTime          @db.Timestamp(6)
-  expiredDate     DateTime          @db.Timestamp(6)
-  qrCode          String            @db.VarChar(255)
-  createdBy       Int
-  creationDate    DateTime          @default(now()) @db.Timestamp(6)
-  lastUpdatedBy   Int
-  lastUpdateDate  DateTime          @default(now()) @db.Timestamp(6)
-  objectVersionId Int
+  salePrice       Decimal?          @db.Decimal(7, 3) @map("sale_price")
+  importedDate    DateTime          @db.Timestamp(6) @map("imported_date")
+  expiredDate     DateTime?         @db.Timestamp(6) @map("expired_date")
+  qrCode          String            @db.VarChar(255) @map("qr_code")
+  enabledFlag     Boolean           @default(true) @map("enabled_flag")
+  createdBy       Int               @map("created_by")
+  creationDate    DateTime          @default(now()) @db.Timestamp(6) @map("creation_date")         
+  lastUpdatedBy   Int               @map("last_updated_by")
+  lastUpdateDate  DateTime          @default(now()) @db.Timestamp(6) @updatedAt @map("last_updated_date")
+  objectVersionId Int               @default(1) @map("object_version_id")
 
   Product         Product           @relation(fields: [productId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  @@map("stocks")
 }
 
 model PromoDetail {
   id              Int               @id @default(autoincrement())
-  productId       Int
-  promotionId     Int
-  createdBy       Int
-  creationDate    DateTime          @default(now()) @db.Timestamp(6)
-  lastUpdatedBy   Int
-  lastUpdateDate  DateTime          @default(now()) @db.Timestamp(6)
-  objectVersionId Int
+  productId       Int               @map("product_id")
+  promotionId     Int               @map("promotion_id")
+  enabledFlag     Boolean           @default(true) @map("enabled_flag")
+  createdBy       Int               @map("created_by")
+  creationDate    DateTime          @default(now()) @db.Timestamp(6) @map("creation_date")         
+  lastUpdatedBy   Int               @map("last_updated_by")
+  lastUpdateDate  DateTime          @default(now()) @db.Timestamp(6) @updatedAt @map("last_updated_date")
+  objectVersionId Int               @default(1) @map("object_version_id")
 
   // Relationships
   product         Product           @relation(fields: [productId], references: [id], onDelete: NoAction, onUpdate: NoAction)
   promotion       Promotion         @relation(fields: [promotionId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  @@map("promotion_details")
 }
 
 model Promotion {
   id              Int               @id @default(autoincrement())
-  promoCode       String            @db.VarChar(60)
+  promoCode       String            @db.VarChar(70) @map("promo_code")
   name            String            @db.VarChar(255)
   description     String?           @db.VarChar(255)
-  enabledFlag     Boolean           @default(true)
-  createdBy       Int
-  creationDate    DateTime          @default(now()) @db.Timestamp(6)
-  lastUpdatedBy   Int
-  lastUpdateDate  DateTime          @default(now()) @db.Timestamp(6)
-  objectVersionId Int
+  enabledFlag     Boolean           @default(true) @map("enabled_flag")
+  createdBy       Int               @map("created_by")
+  creationDate    DateTime          @default(now()) @db.Timestamp(6) @map("creation_date")         
+  lastUpdatedBy   Int               @map("last_updated_by")
+  lastUpdateDate  DateTime          @default(now()) @db.Timestamp(6) @updatedAt @map("last_updated_date")
+  objectVersionId Int               @default(1) @map("object_version_id")
 
   // Relationships
   promoDetails    PromoDetail[]
   invoices        Invoice[]
+  @@map("promotions")
 }
 
 model ProductTransaction {
   id              Int               @id @default(autoincrement())
-  warehouseId     Int       
-  productId       Int       
-  trxNumber       String            @unique @db.VarChar(100)
+  warehouseId     Int               @map("warehouse_id")
+  productId       Int               @map("product_id")
+  trxNumber       String            @unique @db.VarChar(100) @map("trx_number")
   description     String?           @db.VarChar(255)
   type            String            @db.VarChar(1)
   quantity        Int?        
-  cancelFlag      String?           @db.VarChar(1)
-  canceledBy      Int?        
-  cancelReason    String?           @db.VarChar(1000)
-  createdBy       Int
-  creationDate    DateTime          @default(now()) @db.Timestamp(6)
-  lastUpdatedBy   Int
-  lastUpdateDate  DateTime          @default(now()) @db.Timestamp(6)
-  objectVersionId Int
+  cancelFlag      String?           @db.VarChar(1) @map("cancel_flag")
+  canceledBy      Int?              @map("canceled_by")
+  cancelReason    String?           @db.VarChar(1000) @map("cancel_reason")
+  enabledFlag     Boolean           @default(true) @map("enabled_flag")
+  createdBy       Int               @map("created_by")
+  creationDate    DateTime          @default(now()) @db.Timestamp(6) @map("creation_date")         
+  lastUpdatedBy   Int               @map("last_updated_by")
+  lastUpdateDate  DateTime          @default(now()) @db.Timestamp(6) @updatedAt @map("last_updated_date")
+  objectVersionId Int               @default(1) @map("object_version_id")
 
   // Relationships
   warehouse       Warehouse         @relation(fields: [warehouseId], references: [id], onDelete: NoAction, onUpdate: NoAction)
   product         Product           @relation(fields: [productId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  @@map("product_transactions")
 }
 
 model Warehouse {
   id              Int               @id @default(autoincrement())
-  branchId        Int       
+  branchId        Int               @map("branch_id")
   // parentId        Int?        
-  Quantity        Int
-  shortName       String            @unique @db.VarChar(30)
+  shortName       String            @unique @db.VarChar(30) @map("short_name")
   name            String            @unique @db.VarChar(255)
   description     String?           @db.VarChar(255)
-  enabledFlag     Boolean           @default(true)
-  createdBy       Int
-  creationDate    DateTime          @default(now()) @db.Timestamp(6)
-  lastUpdatedBy   Int
-  lastUpdateDate  DateTime          @default(now()) @db.Timestamp(6)
-  objectVersionId Int
+  enabledFlag     Boolean           @default(true) @map("enabled_flag")
+  createdBy       Int               @map("created_by")
+  creationDate    DateTime          @default(now()) @db.Timestamp(6) @map("creation_date")         
+  lastUpdatedBy   Int               @map("last_updated_by")
+  lastUpdateDate  DateTime          @default(now()) @db.Timestamp(6) @updatedAt @map("last_updated_date")
+  objectVersionId Int               @default(1) @map("object_version_id")
 
   // Relationships
   branch          StoreBranch         @relation(fields: [branchId], references: [id], onDelete: NoAction, onUpdate: NoAction)
   transactions    ProductTransaction[]
+  @@map("warehouses")
 }
 
 model Store {
   id              Int               @id @default(autoincrement())
-  countryCode     String            @db.VarChar(3)
-  shortName       String            @unique @db.VarChar(30)
+  countryCode     String            @db.VarChar(3) @map("country_code")
+  shortName       String            @unique @db.VarChar(30) @map("short_name")
   name            String            @unique @db.VarChar(200)
   description     String?           @db.VarChar(255)
-  enabledFlag     Boolean           @default(true)
-  createdBy       Int
-  creationDate    DateTime          @default(now()) @db.Timestamp(6)
-  lastUpdatedBy   Int
-  lastUpdateDate  DateTime          @default(now()) @db.Timestamp(6)
-  objectVersionId Int
+  enabledFlag     Boolean           @default(true) @map("enabled_flag")
+  createdBy       Int               @map("created_by")
+  creationDate    DateTime          @default(now()) @db.Timestamp(6) @map("creation_date")         
+  lastUpdatedBy   Int               @map("last_updated_by")
+  lastUpdateDate  DateTime          @default(now()) @db.Timestamp(6) @updatedAt @map("last_updated_date")
+  objectVersionId Int               @default(1) @map("object_version_id")
 
   branches        StoreBranch[]
+  @@map("stores")
 }
 
 model StoreBranch {        
   id              Int               @id @default(autoincrement())
-  storeId         Int        
-  shortName       String            @unique @db.VarChar(50)
+  storeId         Int               @unique @map("store_id")
+  shortName       String            @unique @db.VarChar(50) @map("short_name")
   name            String            @unique @db.VarChar(100)
   description     String?           @db.VarChar(255)
-  parentId        Int?         
-  managerId       Int?         
-  enabledFlag     Boolean           @default(true)     
-  createdBy       Int        
-  creationDate    DateTime          @default(now()) @db.Timestamp(6)         
-  lastUpdatedBy   Int        
-  lastUpdateDate  DateTime          @default(now()) @db.Timestamp(6)         
-  objectVersionId Int        
+  parentId        Int?              @map("parent_id")
+  managerId       Int?              @map("manager_id")
+  enabledFlag     Boolean           @default(true) @map("enabled_flag")
+  createdBy       Int               @map("created_by")
+  creationDate    DateTime          @default(now()) @db.Timestamp(6) @map("creation_date")         
+  lastUpdatedBy   Int               @map("last_updated_by")
+  lastUpdateDate  DateTime          @default(now()) @db.Timestamp(6) @updatedAt @map("last_updated_date")
+  objectVersionId Int               @default(1) @map("object_version_id")
 
   // Relationships      
   store           Store             @relation(fields: [storeId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  // storeBranch     StoreBranch       @relation(fields: [parentId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  // cashier         Cashier           @relation(fields: [managerId], references: [id])
   warehouses      Warehouse[]
   orders          Order[]
+  @@map("store_branches")
+  // StoreBranch StoreBranch[]
 }
 
 model Order { 
   id              Int               @id @default(autoincrement())
-  branchId        Int       
-  cashierId       Int       
+  branchId        Int               @map("branch_id")
+  cashierId       Int               @map("cashier_id")
   // customerId      Int       
-  orderType       String            @db.VarChar(1)
-  orderNumber     String            @unique @db.VarChar(30)
-  orderDate       DateTime        
+  orderType       String            @db.VarChar(1) @map("order_type")
+  orderNumber     String            @unique @db.VarChar(30) @map("order_number")
+  orderDate       DateTime          @map("order_date")
   status          String            @db.VarChar(30)
   description     String?           @db.VarChar(255)
-  enabledFlag     Boolean           @default(true)
-  holdFlag        String?           @db.VarChar(1)
+  holdFlag        String?           @db.VarChar(1) @map("hold_flag")
   // giftwrapFlag    String?           @db.VarChar(1)
   // giftwrapMessage String?           @db.VarChar(255)
-  createdBy       Int
-  creationDate    DateTime          @default(now()) @db.Timestamp(6)
-  lastUpdatedBy   Int
-  lastUpdateDate  DateTime          @default(now()) @db.Timestamp(6)
-  objectVersionId Int
+  enabledFlag     Boolean           @default(true) @map("enabled_flag")
+  createdBy       Int               @map("created_by")
+  creationDate    DateTime          @default(now()) @db.Timestamp(6) @map("creation_date")         
+  lastUpdatedBy   Int               @map("last_updated_by")
+  lastUpdateDate  DateTime          @default(now()) @db.Timestamp(6) @updatedAt @map("last_updated_date")
+  objectVersionId Int               @default(1) @map("object_version_id")
 
   // Relationships
   branch          StoreBranch       @relation(fields: [branchId], references: [id], onDelete: NoAction, onUpdate: NoAction)
@@ -339,101 +359,108 @@ model Order {
   // customer        Customer    @relation(fields: [customerId], references: [id])
   orderLines      OrderLine[]
   invoices        Invoice[]
+  @@map("orders")
 }
 
 model OrderLine {
   id              Int               @id @default(autoincrement())
-  orderId         Int       
-  lineNum         Int       
+  orderId         Int               @map("order_id")
+  lineNum         Int               @map("line_num")
   lineType        String            @db.VarChar(1)
-  productId       Int       
-  serviceId       Int?        
+  productId       Int               @map("product_id")
+  serviceId       Int?              @map("service_id")
   price           Decimal?          @db.Decimal(7, 3)
-  quantity        Int?        
+  quantity        Int?              
   amount          Decimal?          @db.Decimal(7, 3)
   description     String?           @db.VarChar(255)
-  cancelFlag      String?           @db.VarChar(1)
-  canceledBy      Int?        
-  cancelReason    String?           @db.VarChar(1000)      
-  createdBy       Int       
-  creationDate    DateTime          @default(now()) @db.Timestamp(6)        
-  lastUpdatedBy   Int       
-  lastUpdateDate  DateTime          @default(now()) @db.Timestamp(6)        
-  objectVersionId Int       
+  cancelFlag      String?           @db.VarChar(1) @map("cancel_flag")
+  canceledBy      Int?              @map("canceled_by")
+  cancelReason    String?           @db.VarChar(1000) @map("cancel_reason")      
+  enabledFlag     Boolean           @default(true) @map("enabled_flag")
+  createdBy       Int               @map("created_by")
+  creationDate    DateTime          @default(now()) @db.Timestamp(6) @map("creation_date")         
+  lastUpdatedBy   Int               @map("last_updated_by")
+  lastUpdateDate  DateTime          @default(now()) @db.Timestamp(6) @updatedAt @map("last_updated_date")
+  objectVersionId Int               @default(1) @map("object_version_id")
 
   // Relationships
   order           Order             @relation(fields: [orderId], references: [id], onDelete: NoAction, onUpdate: NoAction)
   product         Product           @relation(fields: [productId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  @@map("order_lines")
 }
 
 model Payment {
   id              Int               @id @default(autoincrement())
-  payMethodId     Int       
-  invoiceId       Int       
-  paymentType     String            @db.VarChar(1)
-  paymentNumber   String            @db.VarChar(30)
+  payMethodId     Int               @map("pay_method_id")
+  invoiceId       Int               @map("invoice_id")  
+  paymentType     String            @db.VarChar(1) @map("payment_type")
+  paymentNumber   String            @db.VarChar(30) @map("payment_number")
   description     String?           @db.VarChar(255)
-  paymentDate     DateTime        
-  paymentCurrency String            @db.VarChar(3)
+  paymentDate     DateTime          @map("payment_date")
+  paymentCurrency String            @db.VarChar(3) @map("payment_currency")
   amount          Decimal           @db.Decimal(7, 3)
   status          String            @db.VarChar(1)
-  enabledFlag     Boolean           @default(true)   
-  createdBy       String            @db.VarChar(60)
-  creationDate    DateTime          @default(now()) @db.Timestamp(6)        
-  lastUpdatedBy   String            @db.VarChar(60)
-  lastUpdateDate  DateTime          @default(now()) @db.Timestamp(6)
-  objectVersionId Int
+  enabledFlag     Boolean           @default(true) @map("enabled_flag")
+  createdBy       Int               @map("created_by")
+  creationDate    DateTime          @default(now()) @db.Timestamp(6) @map("creation_date")         
+  lastUpdatedBy   Int               @map("last_updated_by")
+  lastUpdateDate  DateTime          @default(now()) @db.Timestamp(6) @updatedAt @map("last_updated_date")
+  objectVersionId Int               @default(1) @map("object_version_id")
 
   // Relationships
   paymentMethod   PaymentMethod     @relation(fields: [payMethodId], references: [id], onDelete: NoAction, onUpdate: NoAction)
   invoice         Invoice           @relation(fields: [invoiceId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  @@map("payments")
 }
 
 model PaymentMethod {
   id              Int               @id @default(autoincrement())
-  shortName       String?           @db.VarChar(30)
-  methodName      String            @db.VarChar(100)
-  methodType      String?           @db.VarChar(1)
+  shortName       String?           @db.VarChar(30) @map("sjort_name")
+  methodName      String            @db.VarChar(100) @map("method_name")
+  methodType      String?           @db.VarChar(1) @map("method_type")
   description     String?           @db.VarChar(255)
-  cashFlag        String?           @db.VarChar(1)
-  defaultFlag     String?           @db.VarChar(1)
-  enabledFlag     Boolean           @default(true)
-  holdFlag        String?           @db.VarChar(1)
-  createdBy       Int
-  creationDate    DateTime          @default(now()) @db.Timestamp(6)
-  lastUpdatedBy   Int
-  lastUpdateDate  DateTime          @default(now()) @db.Timestamp(6)
-  objectVersionId Int
+  cashFlag        String?           @db.VarChar(1) @map("cash_flag")
+  defaultFlag     String?           @db.VarChar(1) @map("default_flag")
+  holdFlag        String?           @db.VarChar(1) @map("hold_flag")
+  enabledFlag     Boolean           @default(true) @map("enabled_flag")
+  createdBy       Int               @map("created_by")
+  creationDate    DateTime          @default(now()) @db.Timestamp(6) @map("creation_date")         
+  lastUpdatedBy   Int               @map("last_updated_by")
+  lastUpdateDate  DateTime          @default(now()) @db.Timestamp(6) @updatedAt @map("last_updated_date")
+  objectVersionId Int               @default(1) @map("object_version_id")
 
   // Relationships
   payments        Payment[]
+  @@map("payment_methods")
 }
 
 model Invoice {
   id              Int               @id @default(autoincrement())
-  orderId         Int       
-  promotionId     Int?        
-  invoiceNumber   String            @unique @db.VarChar(30)
+  orderId         Int               @map("order_id")
+  promotionId     Int?              @map("promotion_id")
+  invoiceNumber   String            @unique @db.VarChar(30) @map("invoice_number")
   description     String?           @db.VarChar(255)
   amount          Decimal           @db.Decimal(7, 3)
-  currencyCode    String            @db.VarChar(3)
-  enabledFlag     Boolean           @default(true)
-  createdBy       Int
-  creationDate    DateTime          @default(now()) @db.Timestamp(6)
-  lastUpdatedBy   Int
-  lastUpdateDate  DateTime          @default(now()) @db.Timestamp(6)
-  objectVersionId Int
+  currencyCode    String            @db.VarChar(3) @map("currency_code")
+  enabledFlag     Boolean           @default(true) @map("enabled_flag")
+  createdBy       Int               @map("created_by")
+  creationDate    DateTime          @default(now()) @db.Timestamp(6) @map("creation_date")         
+  lastUpdatedBy   Int               @map("last_updated_by")
+  lastUpdateDate  DateTime          @default(now()) @db.Timestamp(6) @updatedAt @map("last_updated_date")
+  objectVersionId Int               @default(1) @map("object_version_id")
 
   // Relationships
   order           Order             @relation(fields: [orderId], references: [id], onDelete: NoAction, onUpdate: NoAction)
   promotion       Promotion?        @relation(fields: [promotionId], references: [id], onDelete: NoAction, onUpdate: NoAction)
   payments        Payment[]
+  @@map("invoices")
 }
 
 enum Sex {
   Male
   Female
   Bi
+  @@map("sex_enum")
 }
 
 enum Role {
@@ -442,12 +469,14 @@ enum Role {
   MANAGER
   ADMIN
   SUPER_ADMIN
+  @@map("role_enum")
 }
 
 enum CashierType {
   STAFF
   MANAGER
   OWNER
+  @@map("cashier_type_enum")
 }
 
 // model Customer {

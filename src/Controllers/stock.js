@@ -38,13 +38,13 @@ export const post = async (req, res) => {
     // if (!param.password) return error(res, 400, "Password can't be empty");
 
     // Call the model function and await its response
-    const response = await model.post(req, res);
+    const response = await model.post(req);
 
     // Send success response
     return success(res, 200, `Stock created successfully!`);
   } catch (err) {
     console.error("Error in post stock controller:", err);
-    return error(res, 400, err.message || "Post Product failed!");
+    return error(res, 400, err.message || "Post Stock failed!");
   }
 };
 
@@ -55,6 +55,7 @@ export const put = (req, res) => {
       success(res, 200, `Stock updated successfully`);
     })
     .catch((err) => {
+      console.log(err);
       error(res, 400, err);
     });
 };

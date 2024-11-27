@@ -5,16 +5,66 @@ import upload from "./fileUpload.js";
 const salt = bcrypt.genSaltSync(10);
 import { getMaxPage } from "../Helpers/function.js";
 import { url } from "inspector";
+import pagination from "../Helpers/function.js";
+
+export class User {
+  constructor(data) {
+    this.id = Number(data.id);
+    this.username = data.username;
+    this.email = data.email;
+    this.password = data.password;
+    this.avatar = data.avatar;
+    this.profile = data.profile;
+    this.isBan = Boolean(Number(data.isBan));
+    this.enabledFlag = Boolean(Number(data.enabledFlag));
+    this.role = data.role;
+    this.createdBy = Number(data.createdBy);
+    this.creationDate = new Date(data.creationDate);
+    this.lastUpdatedBy = Number(data.lastUpdatedBy);
+    this.lastUpdateDate = new Date(data.lastUpdateDate);
+    this.objectVersionId = Number(data.objectVersionId);
+  }
+}
 
 export const getUser = async (req) => {
   try {
-    const allUsers = await prisma.user.findMany({
+    // const result = await prisma.stock.findMany({});
+    const result = await pagination.getPaginatedData({
+      model: "user",
+      page: parseInt(req.query.page) || 1,
+      pageSize: parseInt(req.query.pageSize) || 10,
       include: {
         profile: true,
       },
     });
-    return allUsers;
+    console.log(await result);
+    result.data.map((data) => ({
+      id: data.id,
+      username: data.username,
+      email: data.email,
+      password: data.password,
+      avatar: data.avatar,
+      profile: data.profile,
+      isBan: data.isBan,
+      enabledFlag: data.enabledFlag,
+      role: data.role,
+      createdBy: data.createdBy,
+      creationDate: data.creationDate,
+      lastUpdatedBy: data.lastUpdatedBy,
+      lastUpdateDate: data.lastUpdateDate,
+      objectVersionId: data.objectVersionId,
+    }));
+    console.log(result);
+    return result;
+
+    // const allUsers = await prisma.user.findMany({
+    //   include: {
+    //     profile: true,
+    //   },
+    // });
+    // return allUsers;
   } catch (error) {
+    console.log(error);
     throw error;
   }
 };
@@ -30,6 +80,8 @@ export const getUserId = async (req) => {
         profile: true,
       },
     });
+    const result = new User(user);
+    console.log(result);
     return user;
   } catch (error) {
     throw error;
@@ -68,60 +120,10 @@ export const getEmail = async (req) => {
   }
 };
 
-// export const registerUser = async (req, res) => {
-//   try {
-//     const {
-//       username,
-//       email,
-//       password,
-//       role,
-//       createdBy,
-//       lastUpdatedBy,
-//       objectVersionId,
-//     } = req.body;
-
-//     upload
-//       .uploadFile(req, res, username)
-//       .then(async (response) => {
-//         // success(res, 200, response);
-//         const avatar = response.url;
-//         console.log(avatar);
-//         const pass = bcrypt.hashSync(password, salt);
-//         const user_data = await prisma.user.create({
-//           data: {
-//             username: username,
-//             email: email,
-//             password: pass,
-//             role: role,
-//             avatar: avatar,
-//             createdBy: Number(createdBy),
-//             lastUpdatedBy: Number(lastUpdatedBy),
-//             objectVersionId: Number(objectVersionId),
-//           },
-//         });
-//         return user_data;
-//       })
-//       .catch((err) => {
-//         console.log("error is" + err);
-//         // error(res, 400, err);
-//       });
-//   } catch (error) {
-//     console.log("error is" + error);
-//     throw error;
-//   }
-// };
-
 export const registerUser = async (req, res) => {
   try {
-    const {
-      username,
-      email,
-      password,
-      role,
-      createdBy,
-      lastUpdatedBy,
-      objectVersionId,
-    } = req.body;
+    const { username, email, password, role, createdBy, lastUpdatedBy } =
+      req.body;
 
     // First upload the file and wait for the response
     const uploadResponse = await upload.uploadFile(req, res, username);
@@ -146,7 +148,6 @@ export const registerUser = async (req, res) => {
         avatar: avatar,
         createdBy: Number(createdBy),
         lastUpdatedBy: Number(lastUpdatedBy),
-        objectVersionId: Number(objectVersionId),
       },
     });
 
@@ -168,7 +169,6 @@ export const putUser = async (req, res) => {
       role,
       createdBy,
       lastUpdatedBy,
-      objectVersionId,
     } = req.body;
 
     const pass = bcrypt.hashSync(password, salt);
@@ -192,7 +192,7 @@ export const putUser = async (req, res) => {
         role: role,
         createdBy: Number(createdBy),
         lastUpdatedBy: Number(lastUpdatedBy),
-        objectVersionId: Number(objectVersionId),
+        objectVersionId: { increment: 1 },
       },
     });
     return user_data;
@@ -278,4 +278,5 @@ export default {
   putUser,
   loginUser,
   deleteUser,
+  User,
 };
