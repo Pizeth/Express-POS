@@ -159,6 +159,7 @@ model ProductType {
 model UnitType {
   id              Int               @id @default(autoincrement())
   name            String            @unique @db.VarChar(50)
+  nameKh          String?           @unique @db.VarChar(50) @map("name_kh")
   code            String            @unique @db.VarChar(20)
   description     String?           @db.VarChar(255)
   enabledFlag     Boolean           @default(true) @map("enabled_flag")
@@ -169,7 +170,7 @@ model UnitType {
   objectVersionId Int               @default(1) @map("object_version_id")
   
   // Relationships
-  unitsOfMeasurement ProductUnit[]
+  productUnits    ProductUnit[]     
   
   @@map("unit_types")
 }
@@ -242,6 +243,7 @@ model Product {
   // Base unit tracking
   baseUnitId      Int               @map("base_unit_id")
   baseUnitQty     Decimal           @default(0) @db.Decimal(10, 2) @map("base_unit_quantity")
+
 
   // Additional tracking      
   enabledFlag     Boolean           @default(true) @map("enabled_flag")
