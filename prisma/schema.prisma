@@ -156,74 +156,81 @@ model ProductType {
 }
 
 // Unit Type model to allow flexible and extensible unit categorization
-model UnitType {
-  id              Int               @id @default(autoincrement())
-  name            String            @unique @db.VarChar(50)
-  nameKh          String?           @unique @db.VarChar(50) @map("name_kh")
-  code            String            @unique @db.VarChar(20)
-  description     String?           @db.VarChar(255)
-  enabledFlag     Boolean           @default(true) @map("enabled_flag")
-  createdBy       Int               @map("created_by")
-  creationDate    DateTime          @default(now()) @db.Timestamp(6) @map("creation_date")         
-  lastUpdatedBy   Int               @map("last_updated_by")
-  lastUpdateDate  DateTime          @default(now()) @db.Timestamp(6) @updatedAt @map("last_updated_date")
-  objectVersionId Int               @default(1) @map("object_version_id")
+// model UnitType {
+//   id              Int               @id @default(autoincrement())
+//   name            String            @unique @db.VarChar(50)
+//   nameKh          String?           @unique @db.VarChar(50) @map("name_kh")
+//   code            String            @unique @db.VarChar(20)
+//   description     String?           @db.VarChar(255)
   
-  // Relationships
-  productUnits    ProductUnit[]     
+//   // Tracking fields
+//   enabledFlag     Boolean           @default(true) @map("enabled_flag")
+//   createdBy       Int               @map("created_by")
+//   creationDate    DateTime          @default(now()) @db.Timestamp(6) @map("creation_date")         
+//   lastUpdatedBy   Int               @map("last_updated_by")
+//   lastUpdateDate  DateTime          @default(now()) @db.Timestamp(6) @updatedAt @map("last_updated_date")
+//   objectVersionId Int               @default(1) @map("object_version_id")
   
-  @@map("unit_types")
-}
-
-model UnitConversion {
-  id              Int               @id @default(autoincrement())
-  fromUnitId      Int               @map("from_unit_id")
-  toUnitId        Int               @map("to_unit_id")
-  conversionFactor Decimal          @db.Decimal(10, 2) @map("conversion_factor")
+//   // Relationships
+//   productUnits    ProductUnit[]     
   
-  fromUnit        ProductUnit       @relation("FromUnitConversions", fields: [fromUnitId], references: [id])
-  toUnit          ProductUnit       @relation("ToUnitConversions", fields: [toUnitId], references: [id])
-  
-  enabledFlag     Boolean           @default(true) @map("enabled_flag")
-  createdBy       Int               @map("created_by")
-  creationDate    DateTime          @default(now()) @db.Timestamp(6) @map("creation_date")         
-  lastUpdatedBy   Int               @map("last_updated_by")
-  lastUpdateDate  DateTime          @default(now()) @db.Timestamp(6) @updatedAt @map("last_updated_date")
-  
-  @@unique([fromUnitId, toUnitId])
-  @@map("unit_conversions")
-}
+//   @@map("unit_types")
+// }
 
 // Product Unit of Measurement model to support hierarchical units
 model ProductUnit {
   id              Int               @id @default(autoincrement())
-  name            String            @db.VarChar(50)
+  name            String            @unique @db.VarChar(50)
   symbol          String?           @db.VarChar(10)
-  typeId          Int               @map("type_id")
-  baseUnitId      Int?              @map("base_unit_id") // Reference to the base unit
-  baseUnitQty     Decimal?          @db.Decimal(10, 2) @map("base_quantity") // Quantity in base unit
+  
+  // Hierarchical unit support
+  baseUnitId      Int?              @map("base_unit_id")
+  baseUnitRatio   Decimal?          @db.Decimal(10, 2) @map("base_unit_ratio")
   
   // Relationships
-  type            UnitType          @relation(fields: [typeId], references: [id])
   baseUnit        ProductUnit?      @relation("UnitHierarchy", fields: [baseUnitId], references: [id])
   derivedUnits    ProductUnit[]     @relation("UnitHierarchy")
   
-  // Additional tracking
+  // Tracking
   enabledFlag     Boolean           @default(true) @map("enabled_flag")
   createdBy       Int               @map("created_by")
   creationDate    DateTime          @default(now()) @db.Timestamp(6) @map("creation_date")         
   lastUpdatedBy   Int               @map("last_updated_by")
   lastUpdateDate  DateTime          @default(now()) @db.Timestamp(6) @updatedAt @map("last_updated_date")
   objectVersionId Int               @default(1) @map("object_version_id")
-  
+
   // Inverse relations
   products        Product[]
   stocks          Stock[]
-  fromConversions UnitConversion[]  @relation("FromUnitConversions")
-  toConversions   UnitConversion[]  @relation("ToUnitConversions")
+  parentUnit      UnitHierarchy[]   @relation("ParentUnit")
+  childUnit       UnitHierarchy[]   @relation("ChildUnit")
   
-  @@unique([name, typeId])
   @@map("product_unit")
+}
+
+// New model to handle product-specific unit hierarchies
+model UnitHierarchy {
+  id              Int               @id @default(autoincrement())
+  productId       Int               @map("product_id")
+  parentUnitId    Int               @map("parent_unit_id")
+  childUnitId     Int               @map("child_unit_id")
+  quantity        Decimal           @db.Decimal(10, 2)
+  
+  // Tracking
+  enabledFlag     Boolean           @default(true) @map("enabled_flag")
+  createdBy       Int               @map("created_by")
+  creationDate    DateTime          @default(now()) @db.Timestamp(6) @map("creation_date")         
+  lastUpdatedBy   Int               @map("last_updated_by")
+  lastUpdateDate  DateTime          @default(now()) @db.Timestamp(6) @updatedAt @map("last_updated_date")
+  objectVersionId Int 
+  
+  // Relations
+  product         Product           @relation(fields: [productId], references: [id])
+  parentUnit      ProductUnit       @relation("ParentUnit", fields: [parentUnitId], references: [id])
+  childUnit       ProductUnit       @relation("ChildUnit", fields: [childUnitId], references: [id])
+  
+  @@unique([productId, parentUnitId, childUnitId])
+  @@map("product_specific_unit_hierarchies")
 }
 
 model Product {
@@ -244,7 +251,6 @@ model Product {
   baseUnitId      Int               @map("base_unit_id")
   baseUnitQty     Decimal           @default(0) @db.Decimal(10, 2) @map("base_unit_quantity")
 
-
   // Additional tracking      
   enabledFlag     Boolean           @default(true) @map("enabled_flag")
   createdBy       Int               @map("created_by")
@@ -258,6 +264,9 @@ model Product {
   manufacturer    Manufacturer      @relation(fields: [manufacturerId], references: [id], onDelete: NoAction, onUpdate: NoAction)
   productType     ProductType       @relation(fields: [productTypeId], references: [id], onDelete: NoAction, onUpdate: NoAction)
   baseUnit        ProductUnit       @relation(fields: [baseUnitId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  
+  // Inverse relations
+  unitHierarchy   UnitHierarchy[]   
   promoDetails    PromoDetail[]
   transactions    ProductTransaction[]
   orderLines      OrderLine[]
@@ -269,10 +278,10 @@ model Product {
 model Stock {
   id              Int               @id @default(autoincrement())
   productId       Int               @map("product_id")
-  
-  // Track stock in base units and specific units
-  baseUnitQty     Decimal           @db.Decimal(10, 2) @map("base_unit_quantity")
   unitId          Int               @map("unit_id")
+  
+  // Simplified stock tracking
+  baseUnitQty     Decimal           @db.Decimal(10, 2) @map("base_unit_quantity")
   unitQuantity    Decimal           @db.Decimal(10, 2) @map("unit_quantity")
   
   price           Decimal           @db.Decimal(7, 3)
@@ -281,7 +290,7 @@ model Stock {
   expiredDate     DateTime?         @db.Timestamp(6) @map("expired_date")
   qrCode          String            @db.VarChar(255) @map("qr_code")
 
-  // Additional tracking 
+  // Tracking 
   enabledFlag     Boolean           @default(true) @map("enabled_flag")
   createdBy       Int               @map("created_by")
   creationDate    DateTime          @default(now()) @db.Timestamp(6) @map("creation_date")         
@@ -295,6 +304,47 @@ model Stock {
   
   @@map("stocks")
 }
+
+// model UnitConversion {
+//   id              Int               @id @default(autoincrement())
+//   fromUnitId      Int               @map("from_unit_id")
+//   toUnitId        Int               @map("to_unit_id")
+//   convfactor      Decimal           @db.Decimal(10, 2) @map("conversion_factor")
+  
+//   fromUnit        ProductUnit       @relation("FromUnitConversions", fields: [fromUnitId], references: [id])
+//   toUnit          ProductUnit       @relation("ToUnitConversions", fields: [toUnitId], references: [id])
+  
+//   enabledFlag     Boolean           @default(true) @map("enabled_flag")
+//   createdBy       Int               @map("created_by")
+//   creationDate    DateTime          @default(now()) @db.Timestamp(6) @map("creation_date")         
+//   lastUpdatedBy   Int               @map("last_updated_by")
+//   lastUpdateDate  DateTime          @default(now()) @db.Timestamp(6) @updatedAt @map("last_updated_date")
+  
+//   @@unique([fromUnitId, toUnitId])
+//   @@map("unit_conversions")
+// }
+
+// model CompositeUnit { 
+//   id              Int               @id @default(autoincrement()) 
+//   productId       Int               @map("product_id") 
+//   unitId          Int               @map("unit_id") 
+//   quantity        Decimal           @db.Decimal(10, 2) @map("quantity") // Quantity in this unit 
+//   baseUnitQty     Decimal           @db.Decimal(10, 2) @map("base_unit_quantity") // Equivalent quantity in base unit 
+
+//   // Additional tracking 
+//   enabledFlag     Boolean           @default(true) @map("enabled_flag")
+//   createdBy       Int               @map("created_by")
+//   creationDate    DateTime          @default(now()) @db.Timestamp(6) @map("creation_date")         
+//   lastUpdatedBy   Int               @map("last_updated_by")
+//   lastUpdateDate  DateTime          @default(now()) @db.Timestamp(6) @updatedAt @map("last_updated_date")
+//   objectVersionId Int               @default(1) @map("object_version_id")
+
+//   // Relationships 
+//   Stock           Stock[]
+//   product         Product           @relation(fields: [productId], references: [id]) 
+//   unit            ProductUnit       @relation(fields: [unitId], references: [id]) 
+//   @@map("composite_units") 
+// }
 
 // model Product {
 //   id              Int               @id @default(autoincrement())

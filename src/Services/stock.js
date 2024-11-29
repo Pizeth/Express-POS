@@ -1,231 +1,190 @@
-import prisma from "../Configs/connect.js";
-import qr from "../Configs/qrCode.js";
-import qr from "../model/stock.js";
-import pagination from "../Helpers/function.js";
+import { PrismaClient } from "@prisma/client";
 
-export const get = async (req) => {
-  try {
-    // const result = await prisma.stock.findMany({});
-    const result = await pagination.getPaginatedData({
-      model: "stock",
-      page: parseInt(req.query.page) || 1,
-      pageSize: parseInt(req.query.pageSize) || 10,
-    });
-    return result;
-  } catch (error) {
-    console.error("Failed to fetch stock:", error);
-    throw error;
+class ProductStockService {
+  constructor(prisma) {
+    this.prisma = prisma || new PrismaClient();
   }
-};
 
-export const getId = async (req) => {
-  try {
-    const id = Number(req.params.id);
-    const result = await prisma.stock.findUnique({
+  /**
+   * Converts a given quantity from one unit to its base unit
+   * @param {number} quantity - Quantity to convert
+   * @param {object} unitHierarchy - Unit hierarchy configuration
+   * @returns {number} Converted base unit quantity
+   */
+  async convertToBaseUnit(productId, unitId, quantity) {
+    // Find the unit hierarchy for this specific product and unit
+    const hierarchyConfig = await this.prisma.unitHierarchy.findFirst({
       where: {
-        id: id,
+        productId: productId,
+        childUnitId: unitId,
+      },
+      include: {
+        parentUnit: true,
+        childUnit: true,
       },
     });
-    return result;
-  } catch (error) {
-    throw error;
+
+    // If no specific hierarchy found, return the original quantity
+    if (!hierarchyConfig) {
+      return quantity;
+    }
+
+    // Calculate base unit quantity
+    return quantity * hierarchyConfig.quantity;
   }
-};
 
-export const getQrCode = async (req) => {
-  // Using map to flatten the structure
-  const stocks = await prisma.stock
-    .findMany({
-      select: {
-        id: true,
-        expiredDate: true,
-        productId: true,
-        Product: {
-          select: {
-            barCode: true,
-          },
+  /**
+   * Add new stock for a product
+   * @param {object} stockData - Stock data to add
+   * @returns {object} Created stock entry
+   */
+  async addStock(stockData) {
+    // Begin a transaction to ensure atomic operations
+    return this.prisma.$transaction(async (prisma) => {
+      // First, convert the incoming stock quantity to base unit
+      const baseUnitQuantity = await this.convertToBaseUnit(
+        stockData.productId,
+        stockData.unitId,
+        stockData.unitQuantity
+      );
+
+      // Create the new stock entry
+      const newStock = await prisma.stock.create({
+        data: {
+          ...stockData,
+          baseUnitQty: baseUnitQuantity,
         },
-      },
-    })
-    .then((stocks) =>
-      stocks.map((stock) => ({
-        id: stock.id,
-        expiredDate: stock.expiredDate,
-        productId: stock.productId,
-        barCode: stock.Product.barCode,
-      }))
-    );
-  return stocks;
-};
-
-export const post = async (req) => {
-  try {
-    const {
-      productId,
-      quantity,
-      importedDate,
-      expiredDate,
-      price,
-      salePrice,
-      createdBy,
-      lastUpdatedBy,
-      objectVersionId,
-    } = req.body;
-
-    const metadata = {
-      productId: productId,
-      importedDate: importedDate,
-      expiredDate: expiredDate,
-    };
-
-    const qrCode = qr.getQrCode(JSON.stringify(metadata));
-
-    const result = prisma.$transaction(async (prisma) => {
-      // 1. Get the current product to get existing quantity
-      const product = await prisma.product.findUnique({
-        where: { id: Number(productId) },
-        select: { quantity: true },
       });
 
-      if (!product) {
-        throw new Error("Product not found");
+      // Update the product's base unit quantity
+      await prisma.product.update({
+        where: { id: stockData.productId },
+        data: {
+          baseUnitQty: {
+            increment: baseUnitQuantity,
+          },
+        },
+      });
+
+      return newStock;
+    });
+  }
+
+  /**
+   * Update existing stock
+   * @param {number} stockId - ID of the stock to update
+   * @param {object} updateData - Data to update
+   * @returns {object} Updated stock entry
+   */
+  async updateStock(stockId, updateData) {
+    return this.prisma.$transaction(async (prisma) => {
+      // First, get the existing stock to compare changes
+      const existingStock = await prisma.stock.findUnique({
+        where: { id: stockId },
+        select: {
+          productId: true,
+          unitId: true,
+          unitQuantity: true,
+          baseUnitQty: true,
+        },
+      });
+
+      if (!existingStock) {
+        throw new Error("Stock entry not found");
       }
 
-      // 2. Create new stock in database
-      const stock = await prisma.stock.create({
-        data: {
-          productId: Number(productId),
-          quantity: Number(quantity),
-          importedDate: new Date(importedDate),
-          expiredDate: new Date(expiredDate),
-          price: Number(price),
-          salePrice: Number(salePrice),
-          qrCode: qrCode,
-          createdBy: Number(createdBy),
-          lastUpdatedBy: Number(lastUpdatedBy),
-          objectVersionId: Number(objectVersionId),
-        },
-      });
+      // Determine the base unit quantity change
+      let baseUnitQuantityChange = 0;
+      if (updateData.unitQuantity !== undefined) {
+        const newBaseUnitQuantity = await this.convertToBaseUnit(
+          existingStock.productId,
+          existingStock.unitId,
+          updateData.unitQuantity
+        );
 
-      // 3. Update product quantity by adding new stock quantity
-      const updatedProduct = await prisma.product.update({
-        where: { id: stock.productId },
-        data: {
-          quantity: {
-            increment: stock.quantity,
-          },
-        },
-      });
-
-      return {
-        stock: stock,
-        product: updatedProduct,
-      };
-    });
-
-    return result;
-  } catch (error) {
-    console.error("Error in post stock model:", error);
-    throw error; // Re-throw to be caught by the controller
-  }
-};
-
-export const put = async (req, res) => {
-  try {
-    const {
-      id,
-      productId,
-      quantity,
-      importedDate,
-      expiredDate,
-      price,
-      salePrice,
-      createdBy,
-      lastUpdatedBy,
-      objectVersionId,
-    } = req.body;
-
-    const metadata = {
-      productId: productId,
-      importedDate: importedDate,
-      expiredDate: expiredDate,
-    };
-
-    const qrCode = qr.getQrCode(JSON.stringify(metadata));
-
-    const result = prisma.$transaction(async (prisma) => {
-      // 1. Get the current stock
-      const currentStock = await prisma.stock.findUnique({
-        where: { id: Number(id) },
-      });
-
-      if (!currentStock) {
-        throw new Error("Stock not found");
+        // Calculate the difference in base unit quantity
+        baseUnitQuantityChange =
+          newBaseUnitQuantity - existingStock.baseUnitQty;
       }
 
-      // 2. Calculate quantity difference
-      const quantityDifference = quantity - currentStock.quantity;
-
-      // 3. Update stock in database
-      const stock = await prisma.stock.update({
-        where: {
-          id: Number(id),
-        },
+      // Update the stock
+      const updatedStock = await prisma.stock.update({
+        where: { id: stockId },
         data: {
-          productId: Number(productId),
-          quantity: Number(quantity),
-          importedDate: new Date(importedDate),
-          expiredDate: new Date(expiredDate),
-          price: Number(price),
-          salePrice: Number(salePrice),
-          qrCode: qrCode,
-          createdBy: Number(createdBy),
-          lastUpdatedBy: Number(lastUpdatedBy),
-          objectVersionId: Number(objectVersionId),
+          ...updateData,
+          ...(baseUnitQuantityChange !== 0
+            ? {
+                baseUnitQty: existingStock.baseUnitQty + baseUnitQuantityChange,
+              }
+            : {}),
         },
       });
 
-      // 4. Update product quantity by the difference
-      const updatedProduct = await prisma.product.update({
-        where: { id: stock.productId },
+      // Update the product's base unit quantity if changed
+      if (baseUnitQuantityChange !== 0) {
+        await prisma.product.update({
+          where: { id: existingStock.productId },
+          data: {
+            baseUnitQty: {
+              increment: baseUnitQuantityChange,
+            },
+          },
+        });
+      }
+
+      return updatedStock;
+    });
+  }
+
+  /**
+   * Remove stock entry and adjust product base unit quantity
+   * @param {number} stockId - ID of the stock to remove
+   */
+  async removeStock(stockId) {
+    return this.prisma.$transaction(async (prisma) => {
+      // Get the stock entry to be deleted
+      const stockToDelete = await prisma.stock.findUnique({
+        where: { id: stockId },
+        select: {
+          productId: true,
+          baseUnitQty: true,
+        },
+      });
+
+      if (!stockToDelete) {
+        throw new Error("Stock entry not found");
+      }
+
+      // Delete the stock entry
+      await prisma.stock.delete({
+        where: { id: stockId },
+      });
+
+      // Adjust the product's base unit quantity
+      await prisma.product.update({
+        where: { id: stockToDelete.productId },
         data: {
-          quantity: {
-            increment: quantityDifference,
+          baseUnitQty: {
+            decrement: stockToDelete.baseUnitQty,
           },
         },
       });
+    });
+  }
 
-      return {
-        stock: stock,
-        product: updatedProduct,
-      };
+  /**
+   * Get total base unit quantity for a product
+   * @param {number} productId - ID of the product
+   * @returns {number} Total base unit quantity
+   */
+  async getProductTotalBaseUnitQuantity(productId) {
+    const totalStock = await this.prisma.stock.aggregate({
+      where: { productId: productId },
+      _sum: { baseUnitQty: true },
     });
 
-    return result;
-  } catch (error) {
-    console.error("Error in put stock model:", error);
-    throw error;
+    return totalStock._sum.baseUnitQty || 0;
   }
-};
+}
 
-export const remove = async (req) => {
-  try {
-    const id = Number(req.params.id);
-    const result = await prisma.product.delete({
-      where: {
-        id: Number(id),
-      },
-    });
-    return result;
-  } catch (error) {
-    throw error;
-  }
-};
-
-export default {
-  get,
-  getId,
-  post,
-  put,
-  remove,
-};
+export default ProductStockService;

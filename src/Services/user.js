@@ -1,280 +1,171 @@
-// Models/category.js
-import prisma from "../Configs/connect.js";
-import prisma from "../mode/user.js";
+// services/userService.js
 import bcrypt from "bcrypt";
-import upload from "./fileUpload.js";
+import model from "../model/user.js";
+import UserRepository from "../repositories/userRepository.js";
+import upload from "../model/fileUpload.js";
+
 const salt = bcrypt.genSaltSync(10);
 
-export const getUser = async (req) => {
-  try {
-    const allUsers = await prisma.user.findMany({
-      include: {
-        profile: true,
-      },
-    });
-    return allUsers;
-  } catch (error) {
-    throw error;
-  }
-};
+export class UserService {
+  // Register a new user
+  static async registerUser(userData, req, res) {
+    try {
+      const { username, email, password, role, createdBy, lastUpdatedBy } =
+        userData;
 
-export const getUserId = async (req) => {
-  try {
-    const userId = Number(req.params.id);
-    const user = await prisma.user.findUnique({
-      where: {
-        id: userId,
-      },
-      include: {
-        profile: true,
-      },
-    });
-    return user;
-  } catch (error) {
-    throw error;
-  }
-};
+      // Validate unique constraints
+      const existingUsername = await UserRepository.findByUsername(username);
+      if (existingUsername) {
+        throw new Error("Username already exists");
+      }
 
-export const getUsername = async (req) => {
-  try {
-    const username = req.params.username;
-    console.log(username);
-    const user = await prisma.user.findFirst({
-      where: {
-        username: { equals: username, mode: "insensitive" },
-      },
-    });
-    return user;
-  } catch (error) {
-    console.error("Error checking username: ", error);
-    throw error;
-  }
-};
+      const existingEmail = await UserRepository.findByEmail(email);
+      if (existingEmail) {
+        throw new Error("Email already exists");
+      }
 
-export const getEmail = async (req) => {
-  try {
-    const email = req.params.email;
-    console.log(email);
-    const user = await prisma.user.findFirst({
-      where: {
-        email: { equals: email, mode: "insensitive" },
-      },
-    });
-    return user;
-  } catch (error) {
-    console.error("Error checking email: ", error);
-    throw error;
-  }
-};
+      // Upload avatar if provided
+      let avatarUrl = "";
+      try {
+        const uploadResponse = await upload.uploadFile(req, res, username);
+        if (uploadResponse.status === 200) {
+          avatarUrl = uploadResponse.url;
+        }
+      } catch (uploadError) {
+        console.warn("Avatar upload failed:", uploadError);
+      }
 
-// export const registerUser = async (req, res) => {
-//   try {
-//     const {
-//       username,
-//       email,
-//       password,
-//       role,
-//       createdBy,
-//       lastUpdatedBy,
-//       objectVersionId,
-//     } = req.body;
+      // Hash password
+      const hashedPassword = bcrypt.hashSync(password, salt);
 
-//     upload
-//       .uploadFile(req, res, username)
-//       .then(async (response) => {
-//         // success(res, 200, response);
-//         const avatar = response.url;
-//         console.log(avatar);
-//         const pass = bcrypt.hashSync(password, salt);
-//         const user_data = await prisma.user.create({
-//           data: {
-//             username: username,
-//             email: email,
-//             password: pass,
-//             role: role,
-//             avatar: avatar,
-//             createdBy: Number(createdBy),
-//             lastUpdatedBy: Number(lastUpdatedBy),
-//             objectVersionId: Number(objectVersionId),
-//           },
-//         });
-//         return user_data;
-//       })
-//       .catch((err) => {
-//         console.log("error is" + err);
-//         // error(res, 400, err);
-//       });
-//   } catch (error) {
-//     console.log("error is" + error);
-//     throw error;
-//   }
-// };
+      // Create user
+      const newUser = await prisma.user.create({
+        data: {
+          username,
+          email,
+          password: hashedPassword,
+          role,
+          avatar: avatarUrl,
+          createdBy: Number(createdBy),
+          lastUpdatedBy: Number(lastUpdatedBy),
+        },
+      });
 
-export const registerUser = async (req, res) => {
-  try {
-    const {
-      username,
-      email,
-      password,
-      role,
-      createdBy,
-      lastUpdatedBy,
-      objectVersionId,
-    } = req.body;
-
-    // First upload the file and wait for the response
-    const uploadResponse = await upload.uploadFile(req, res, username);
-    let avatar = "";
-    if (uploadResponse.status == 200) {
-      avatar = uploadResponse.url;
-      console.log("avatar url: " + avatar);
-    } else {
-      console.log(uploadResponse);
+      return new User(newUser);
+    } catch (error) {
+      console.error("User registration error:", error);
+      throw error;
     }
-
-    // Hash password
-    const pass = bcrypt.hashSync(password, salt);
-
-    // Create user in database
-    const user_data = await prisma.user.create({
-      data: {
-        username: username,
-        email: email,
-        password: pass,
-        role: role,
-        avatar: avatar,
-        createdBy: Number(createdBy),
-        lastUpdatedBy: Number(lastUpdatedBy),
-        objectVersionId: Number(objectVersionId),
-      },
-    });
-
-    return user_data;
-  } catch (error) {
-    console.error("Error in registerUser model:", error);
-    throw error; // Re-throw to be caught by the controller
   }
-};
 
-export const putUser = async (req, res) => {
-  try {
-    const {
-      id,
-      username,
-      email,
-      password,
-      avatar,
-      role,
-      createdBy,
-      lastUpdatedBy,
-      objectVersionId,
-    } = req.body;
+  // Login user
+  static async loginUser(credentials) {
+    try {
+      const { username } = credentials;
 
-    const pass = bcrypt.hashSync(password, salt);
+      // Find user by username or email
+      const user = await prisma.user.findFirst({
+        where: {
+          OR: [
+            { email: { equals: username, mode: "insensitive" } },
+            { username: username },
+          ],
+        },
+        include: {
+          profile: true,
+        },
+      });
 
-    // First upload the file and wait for the response
-    const uploadResponse = await upload.uploadFile(req, res, shortName);
-    let image = avatar;
-    if (uploadResponse.status == 200) {
-      image = uploadResponse.url;
+      if (!user) {
+        throw new Error("User not found");
+      }
+
+      // Verify password
+      const isPasswordValid = bcrypt.compareSync(
+        credentials.password,
+        user.password
+      );
+      if (!isPasswordValid) {
+        throw new Error("Invalid credentials");
+      }
+
+      return new User(user);
+    } catch (error) {
+      console.error("User login error:", error);
+      throw error;
     }
-
-    const user_data = await prisma.user.update({
-      where: {
-        id: Number(id),
-      },
-      data: {
-        username: username,
-        email: email,
-        password: pass,
-        avatar: image,
-        role: role,
-        createdBy: Number(createdBy),
-        lastUpdatedBy: Number(lastUpdatedBy),
-        objectVersionId: Number(objectVersionId),
-      },
-    });
-    return user_data;
-  } catch (error) {
-    throw error;
   }
-};
 
-export const loginUser = async (req) => {
-  try {
-    const { username } = req.body;
-    console.log(username);
-    const login_user = await prisma.user.findFirst({
-      where: {
-        // username: username,
-        OR: [
-          {
-            email: { equals: username, mode: "insensitive" },
-          },
-          { username: username },
-        ],
-      },
+  // Update user
+  static async updateUser(userId, updateData, req, res) {
+    try {
+      const {
+        username,
+        email,
+        password,
+        avatar,
+        role,
+        createdBy,
+        lastUpdatedBy,
+      } = updateData;
 
-      include: {
-        profile: true,
-      },
-    });
-    return login_user;
-  } catch (error) {
-    console.log(error);
-    throw error;
+      // Check if user exists
+      const existingUser = await UserRepository.findById(userId);
+      if (!existingUser) {
+        throw new Error("User not found");
+      }
+
+      // Handle avatar upload
+      let avatarUrl = avatar;
+      try {
+        const uploadResponse = await upload.uploadFile(req, res, username);
+        if (uploadResponse.status === 200) {
+          avatarUrl = uploadResponse.url;
+        }
+      } catch (uploadError) {
+        console.warn("Avatar upload failed:", uploadError);
+      }
+
+      // Hash password if provided
+      const hashedPassword = password
+        ? bcrypt.hashSync(password, salt)
+        : undefined;
+
+      // Update user
+      const updatedUser = await prisma.user.update({
+        where: { id: Number(userId) },
+        data: {
+          username,
+          email,
+          ...(hashedPassword && { password: hashedPassword }),
+          avatar: avatarUrl,
+          role,
+          createdBy: Number(createdBy),
+          lastUpdatedBy: Number(lastUpdatedBy),
+          objectVersionId: { increment: 1 },
+        },
+      });
+
+      return new User(updatedUser);
+    } catch (error) {
+      console.error("User update error:", error);
+      throw error;
+    }
   }
-};
 
-export const deleteUser = async (req) => {
-  try {
-    const userId = Number(req.params.id);
-    const user = await prisma.user.delete({
-      where: {
-        id: Number(userId),
-      },
-    });
-    return user;
-  } catch (error) {
-    throw error;
+  // Delete user
+  static async deleteUser(userId) {
+    try {
+      const deletedUser = await prisma.user.delete({
+        where: { id: Number(userId) },
+      });
+
+      return new User(deletedUser);
+    } catch (error) {
+      console.error(`Error deleting user ${userId}:`, error);
+      throw error;
+    }
   }
-};
+}
 
-// exports.registerUser = (req) => {
-//   const body = req.body;
-//   const pass = bcrypt.hashSync(body.password, salt);
-//   return new Promise((resolve, reject) => {
-//     conn.query(
-//       `INSERT INTO user SET username = ?, password = ?`,
-//       [body.username, pass],
-//       (err, result) => {
-//         if (!err) resolve(result);
-//         else reject(err);
-//       }
-//     );
-//   });
-// };
-
-// exports.loginUser = (req) => {
-//   return new Promise((resolve, reject) => {
-//     conn.query(
-//       `SELECT * FROM user WHERE username = ?`,
-//       [req.body.username],
-//       (err, result) => {
-//         if (!err) resolve(result);
-//         else reject(err);
-//       }
-//     );
-//   });
-// };
-
-export default {
-  getUser,
-  getUserId,
-  getUsername,
-  getEmail,
-  registerUser,
-  putUser,
-  loginUser,
-  deleteUser,
-};
+export default UserService;

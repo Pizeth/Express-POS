@@ -26,6 +26,57 @@ export class User {
   }
 }
 
+// models/User.js
+export class User {
+  constructor(data = {}) {
+    this.id = data.id ? Number(data.id) : null;
+    this.username = data.username || "";
+    this.email = data.email || "";
+    this.password = data.password || "";
+    this.avatar = data.avatar || null;
+    this.profile = data.profile || null;
+    this.isBan = data.isBan !== undefined ? Boolean(Number(data.isBan)) : false;
+    this.enabledFlag =
+      data.enabledFlag !== undefined ? Boolean(Number(data.enabledFlag)) : true;
+    this.role = data.role || "USER";
+    this.createdBy = data.createdBy ? Number(data.createdBy) : null;
+    this.creationDate = data.creationDate
+      ? new Date(data.creationDate)
+      : new Date();
+    this.lastUpdatedBy = data.lastUpdatedBy ? Number(data.lastUpdatedBy) : null;
+    this.lastUpdateDate = data.lastUpdateDate
+      ? new Date(data.lastUpdateDate)
+      : new Date();
+    this.objectVersionId = data.objectVersionId
+      ? Number(data.objectVersionId)
+      : 1;
+  }
+
+  // Optional: Add validation methods
+  validate() {
+    const errors = [];
+
+    if (!this.username || this.username.length < 3) {
+      errors.push("Username must be at least 3 characters long");
+    }
+
+    if (!this.email || !this.email.includes("@")) {
+      errors.push("Invalid email address");
+    }
+
+    return {
+      isValid: errors.length === 0,
+      errors,
+    };
+  }
+
+  // Optional: Method to sanitize sensitive information
+  toJSON() {
+    const { password, ...rest } = this;
+    return rest;
+  }
+}
+
 export const getUser = async (req) => {
   try {
     // const result = await prisma.stock.findMany({});
@@ -268,6 +319,8 @@ export const deleteUser = async (req) => {
 //     );
 //   });
 // };
+
+// export default User;
 
 export default {
   getUser,
