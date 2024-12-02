@@ -22,14 +22,18 @@ model User {
   avatar          String?           @db.VarChar(255)
   profile         Profile?  
   isBan           Boolean           @default(false) @map("is_ban")
-  enabledFlag     Boolean           @default(true) @map("enabled_flag")
   role            Role              @default(USER)
+
+  // Tracking
+  enabledFlag     Boolean           @default(true) @map("enabled_flag")
+  deletedAt       DateTime?         @map("deleted_at")
   createdBy       Int               @map("created_by")
   creationDate    DateTime          @default(now()) @db.Timestamp(6) @map("creation_date")         
   lastUpdatedBy   Int               @map("last_updated_by")
   lastUpdateDate  DateTime          @default(now()) @db.Timestamp(6) @updatedAt @map("last_updated_date")
   objectVersionId Int               @default(1) @map("object_version_id")
 
+  @@index([username, email])
   @@unique([username, email])
   @@map("users")
 }

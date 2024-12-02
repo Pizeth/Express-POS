@@ -1,31 +1,23 @@
 // repositories/userRepository.js
 import prisma from "../Configs/connect.js";
-import { User } from "../model/user.js";
+import User from "../Models/user.js";
+import pagination from "../Helpers/function.js";
 
 export class UserRepository {
-  // Get paginated users
-  static async getPaginatedUsers(page = 1, pageSize = 10) {
+  static async findUsers(page, pageSize, orderBy, orderDirection) {
     try {
-      const result = await prisma.user.findMany({
-        skip: (page - 1) * pageSize,
-        take: pageSize,
+      const result = await pagination.getPaginatedData({
+        model: "user",
+        page: parseInt(page) || 1,
+        pageSize: parseInt(pageSize) || 10,
+        orderBy,
+        orderDirection,
         include: {
           profile: true,
         },
-        orderBy: {
-          creationDate: "desc",
-        },
       });
-
-      const total = await prisma.user.count();
-
-      return {
-        data: result.map((user) => new User(user)),
-        page,
-        pageSize,
-        total,
-        totalPages: Math.ceil(total / pageSize),
-      };
+      result.data.map((data) => new User(data));
+      return result;
     } catch (error) {
       console.error("Error fetching paginated users:", error);
       throw error;
@@ -82,6 +74,54 @@ export class UserRepository {
       console.error(`Error finding user with email ${email}:`, error);
       throw error;
     }
+  }
+
+  // Add method for bulk operations
+  static async bulkCreate(users) {
+    return prisma.$transaction(
+      users.map((user) =>
+        prisma.user.create({
+          data: new User(user).toJSON(),
+        })
+      )
+    );
+  }
+
+  // Add method for conditional updates
+  static async updateUserStatus(id, updates) {
+    return prisma.user.update({
+      where: { id: Number(id) },
+      data: {
+        ...updates,
+        lastUpdateDate: new Date(),
+      },
+    });
+  }
+
+  // Enhanced search method
+  static async searchUsers(criteria, options = {}) {
+    const {
+      page = 1,
+      pageSize = 10,
+      orderBy = "creationDate",
+      orderDirection = "desc",
+    } = options;
+
+    return prisma.user.findMany({
+      where: {
+        OR: [
+          { username: { contains: criteria, mode: "insensitive" } },
+          { email: { contains: criteria, mode: "insensitive" } },
+        ],
+        deletedAt: null, // Soft delete support
+      },
+      include: {
+        profile: true,
+      },
+      orderBy: { [orderBy]: orderDirection },
+      skip: (page - 1) * pageSize,
+      take: pageSize,
+    });
   }
 }
 

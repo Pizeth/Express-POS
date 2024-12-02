@@ -1,44 +1,30 @@
-// Models/category.js
-import prisma from "../Configs/connect.js";
+// models/user.js
 import bcrypt from "bcrypt";
-import upload from "./fileUpload.js";
-const salt = bcrypt.genSaltSync(10);
-import { getMaxPage } from "../Helpers/function.js";
-import { url } from "inspector";
-import pagination from "../Helpers/function.js";
 
-export class User {
-  constructor(data) {
-    this.id = Number(data.id);
-    this.username = data.username;
-    this.email = data.email;
-    this.password = data.password;
-    this.avatar = data.avatar;
-    this.profile = data.profile;
-    this.isBan = Boolean(Number(data.isBan));
-    this.enabledFlag = Boolean(Number(data.enabledFlag));
-    this.role = data.role;
-    this.createdBy = Number(data.createdBy);
-    this.creationDate = new Date(data.creationDate);
-    this.lastUpdatedBy = Number(data.lastUpdatedBy);
-    this.lastUpdateDate = new Date(data.lastUpdateDate);
-    this.objectVersionId = Number(data.objectVersionId);
-  }
-}
-
-// models/User.js
 export class User {
   constructor(data = {}) {
-    this.id = data.id ? Number(data.id) : null;
+    const VALID_ROLES = ["USER", "ADMIN", "MODERATOR"];
+
+    this.id = Number(data?.id ?? null);
     this.username = data.username || "";
     this.email = data.email || "";
-    this.password = data.password || "";
+    // this.password = data?.password ? this.hashPassword(data.password) : "";
+    this.password = data?.password ? data.password : "";
     this.avatar = data.avatar || null;
-    this.profile = data.profile || null;
-    this.isBan = data.isBan !== undefined ? Boolean(Number(data.isBan)) : false;
-    this.enabledFlag =
-      data.enabledFlag !== undefined ? Boolean(Number(data.enabledFlag)) : true;
-    this.role = data.role || "USER";
+
+    // Use optional chaining for nested object properties
+    this.profile = data?.profile ?? null;
+
+    // Enhanced type conversion
+    this.isBan = !!data?.isBan;
+    this.enabledFlag = data?.enabledFlag ?? true;
+    // this.isBan = data.isBan !== undefined ? Boolean(Number(data.isBan)) : false;
+    // this.enabledFlag =
+    //   data.enabledFlag !== undefined ? Boolean(Number(data.enabledFlag)) : true;
+    // this.role = data.role || "USER";
+
+    // Enum-like role validation
+    this.role = VALID_ROLES.includes(data?.role) ? data.role : "USER";
     this.createdBy = data.createdBy ? Number(data.createdBy) : null;
     this.creationDate = data.creationDate
       ? new Date(data.creationDate)
@@ -52,16 +38,41 @@ export class User {
       : 1;
   }
 
+  // Add a method for password hashing
+  hashPassword(password) {
+    // Consider using a more modern hashing method
+    return bcrypt.hashSync(password, 12); // increased salt rounds
+  }
+
   // Optional: Add validation methods
   validate() {
     const errors = [];
 
-    if (!this.username || this.username.length < 3) {
-      errors.push("Username must be at least 3 characters long");
+    if (!this.username?.trim()) {
+      errors.push("Username is required");
     }
 
-    if (!this.email || !this.email.includes("@")) {
-      errors.push("Invalid email address");
+    if (
+      this.username &&
+      (this.username.length < 5 || this.username.length > 50)
+    ) {
+      errors.push("Username must be between 5 and 50 characters");
+    }
+
+    // Advanced email validation
+    const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+    if (!this.email || !emailRegex.test(this.email)) {
+      errors.push("Invalid email format");
+    }
+
+    // Password complexity requirements
+    const passwordRegex =
+      /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
+    console.log(this.password);
+    if (!passwordRegex.test(this.password)) {
+      errors.push(
+        "Password must be at least 8 characters, include uppercase, lowercase, number, and special character"
+      );
     }
 
     return {
@@ -70,266 +81,16 @@ export class User {
     };
   }
 
-  // Optional: Method to sanitize sensitive information
+  // More secure JSON serialization
   toJSON() {
-    const { password, ...rest } = this;
-    return rest;
+    const { password, ...safeUser } = this;
+    return {
+      ...safeUser,
+      creationDate: this.creationDate.toISOString(),
+      lastUpdateDate: this.lastUpdateDate.toISOString(),
+    };
   }
 }
 
-export const getUser = async (req) => {
-  try {
-    // const result = await prisma.stock.findMany({});
-    const result = await pagination.getPaginatedData({
-      model: "user",
-      page: parseInt(req.query.page) || 1,
-      pageSize: parseInt(req.query.pageSize) || 10,
-      include: {
-        profile: true,
-      },
-    });
-    console.log(await result);
-    result.data.map((data) => ({
-      id: data.id,
-      username: data.username,
-      email: data.email,
-      password: data.password,
-      avatar: data.avatar,
-      profile: data.profile,
-      isBan: data.isBan,
-      enabledFlag: data.enabledFlag,
-      role: data.role,
-      createdBy: data.createdBy,
-      creationDate: data.creationDate,
-      lastUpdatedBy: data.lastUpdatedBy,
-      lastUpdateDate: data.lastUpdateDate,
-      objectVersionId: data.objectVersionId,
-    }));
-    console.log(result);
-    return result;
-
-    // const allUsers = await prisma.user.findMany({
-    //   include: {
-    //     profile: true,
-    //   },
-    // });
-    // return allUsers;
-  } catch (error) {
-    console.log(error);
-    throw error;
-  }
-};
-
-export const getUserId = async (req) => {
-  try {
-    const userId = Number(req.params.id);
-    const user = await prisma.user.findUnique({
-      where: {
-        id: userId,
-      },
-      include: {
-        profile: true,
-      },
-    });
-    const result = new User(user);
-    console.log(result);
-    return user;
-  } catch (error) {
-    throw error;
-  }
-};
-
-export const getUsername = async (req) => {
-  try {
-    const username = req.params.username;
-    console.log(username);
-    const user = await prisma.user.findFirst({
-      where: {
-        username: { equals: username, mode: "insensitive" },
-      },
-    });
-    return user;
-  } catch (error) {
-    console.error("Error checking username: ", error);
-    throw error;
-  }
-};
-
-export const getEmail = async (req) => {
-  try {
-    const email = req.params.email;
-    console.log(email);
-    const user = await prisma.user.findFirst({
-      where: {
-        email: { equals: email, mode: "insensitive" },
-      },
-    });
-    return user;
-  } catch (error) {
-    console.error("Error checking email: ", error);
-    throw error;
-  }
-};
-
-export const registerUser = async (req, res) => {
-  try {
-    const { username, email, password, role, createdBy, lastUpdatedBy } =
-      req.body;
-
-    // First upload the file and wait for the response
-    const uploadResponse = await upload.uploadFile(req, res, username);
-    let avatar = "";
-    if (uploadResponse.status == 200) {
-      avatar = uploadResponse.url;
-      console.log("avatar url: " + avatar);
-    } else {
-      console.log(uploadResponse);
-    }
-
-    // Hash password
-    const pass = bcrypt.hashSync(password, salt);
-
-    // Create user in database
-    const user_data = await prisma.user.create({
-      data: {
-        username: username,
-        email: email,
-        password: pass,
-        role: role,
-        avatar: avatar,
-        createdBy: Number(createdBy),
-        lastUpdatedBy: Number(lastUpdatedBy),
-      },
-    });
-
-    return user_data;
-  } catch (error) {
-    console.error("Error in registerUser model:", error);
-    throw error; // Re-throw to be caught by the controller
-  }
-};
-
-export const putUser = async (req, res) => {
-  try {
-    const {
-      id,
-      username,
-      email,
-      password,
-      avatar,
-      role,
-      createdBy,
-      lastUpdatedBy,
-    } = req.body;
-
-    const pass = bcrypt.hashSync(password, salt);
-
-    // First upload the file and wait for the response
-    const uploadResponse = await upload.uploadFile(req, res, shortName);
-    let image = avatar;
-    if (uploadResponse.status == 200) {
-      image = uploadResponse.url;
-    }
-
-    const user_data = await prisma.user.update({
-      where: {
-        id: Number(id),
-      },
-      data: {
-        username: username,
-        email: email,
-        password: pass,
-        avatar: image,
-        role: role,
-        createdBy: Number(createdBy),
-        lastUpdatedBy: Number(lastUpdatedBy),
-        objectVersionId: { increment: 1 },
-      },
-    });
-    return user_data;
-  } catch (error) {
-    throw error;
-  }
-};
-
-export const loginUser = async (req) => {
-  try {
-    const { username } = req.body;
-    console.log(username);
-    const login_user = await prisma.user.findFirst({
-      where: {
-        // username: username,
-        OR: [
-          {
-            email: { equals: username, mode: "insensitive" },
-          },
-          { username: username },
-        ],
-      },
-
-      include: {
-        profile: true,
-      },
-    });
-    return login_user;
-  } catch (error) {
-    console.log(error);
-    throw error;
-  }
-};
-
-export const deleteUser = async (req) => {
-  try {
-    const userId = Number(req.params.id);
-    const user = await prisma.user.delete({
-      where: {
-        id: Number(userId),
-      },
-    });
-    return user;
-  } catch (error) {
-    throw error;
-  }
-};
-
-// exports.registerUser = (req) => {
-//   const body = req.body;
-//   const pass = bcrypt.hashSync(body.password, salt);
-//   return new Promise((resolve, reject) => {
-//     conn.query(
-//       `INSERT INTO user SET username = ?, password = ?`,
-//       [body.username, pass],
-//       (err, result) => {
-//         if (!err) resolve(result);
-//         else reject(err);
-//       }
-//     );
-//   });
-// };
-
-// exports.loginUser = (req) => {
-//   return new Promise((resolve, reject) => {
-//     conn.query(
-//       `SELECT * FROM user WHERE username = ?`,
-//       [req.body.username],
-//       (err, result) => {
-//         if (!err) resolve(result);
-//         else reject(err);
-//       }
-//     );
-//   });
-// };
-
 // export default User;
-
-export default {
-  getUser,
-  getUserId,
-  getUsername,
-  getEmail,
-  registerUser,
-  putUser,
-  loginUser,
-  deleteUser,
-  User,
-};
+export default User;

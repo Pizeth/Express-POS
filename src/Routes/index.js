@@ -82,7 +82,7 @@ Router.use("/productType", validateUser, productType);
 Router.use("/product", validateUser, productRoutes);
 Router.use("/stock", validateUser, stockRoutes);
 // Router.use("/order", validateUser, orderRoutes);
-Router.use("/profile", profileRoutes);
+Router.use("/profile", validateUser, profileRoutes);
 Router.use("/user", userRoutes);
 Router.use("/upload", uploadRoutes);
 

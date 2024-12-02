@@ -162,7 +162,7 @@ async function getPaginatedData({
   const defaultSelect = select || undefined;
 
   // Fetch items
-  const items = await prisma[model].findMany({
+  const data = await prisma[model].findMany({
     where,
     skip: (page - 1) * pageSize,
     take: pageSize,
@@ -187,7 +187,7 @@ async function getPaginatedData({
   };
 
   return {
-    data: items,
+    data,
     metadata,
   };
 }

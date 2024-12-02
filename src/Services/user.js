@@ -1,67 +1,172 @@
 // services/userService.js
+import prisma from "../Configs/connect.js";
+import User from "../Models/user.js";
+import UserRepository from "../Repository/user.js";
+import upload from "../Services/fileUpload.js";
 import bcrypt from "bcrypt";
-import model from "../model/user.js";
-import UserRepository from "../repositories/userRepository.js";
-import upload from "../model/fileUpload.js";
 
 const salt = bcrypt.genSaltSync(10);
 
 export class UserService {
   // Register a new user
-  static async registerUser(userData, req, res) {
+  // static async register(userData, req, res) {
+  //   let fileName = "";
+  //   try {
+  //     const { username, email, password, role, createdBy, lastUpdatedBy } =
+  //       userData;
+
+  //     // Validate unique constraints
+  //     const existingUsername = await UserRepository.findByUsername(username);
+  //     if (existingUsername) {
+  //       throw new Error("Username already exists");
+  //     }
+
+  //     const existingEmail = await UserRepository.findByEmail(email);
+  //     if (existingEmail) {
+  //       throw new Error("Email already exists");
+  //     }
+
+  //     // Upload avatar if provided
+  //     let avatar = "";
+  //     try {
+  //       const uploadResponse = await upload.uploadFile(req, res, username);
+  //       if (uploadResponse.status === 200) {
+  //         avatar = uploadResponse.url;
+  //         fileName = uploadResponse.fileName;
+  //       }
+  //     } catch (uploadError) {
+  //       console.warn("Avatar upload failed:", uploadError);
+  //     }
+
+  //     // Hash password
+  //     const hashedPassword = bcrypt.hashSync(password, salt);
+
+  //     // Create user
+  //     const newUser = await prisma.user.create({
+  //       data: {
+  //         username,
+  //         email,
+  //         password: hashedPassword,
+  //         role,
+  //         avatar: avatar,
+  //         createdBy: Number(createdBy),
+  //         lastUpdatedBy: Number(lastUpdatedBy),
+  //       },
+  //     });
+
+  //     return new User(newUser);
+  //   } catch (error) {
+  //     if (fileName) {
+  //       try {
+  //         const deleteResponse = await upload.deleteFile(fileName);
+  //         console.log(`Rolled back uploaded file: ${deleteResponse.fileName}`);
+  //       } catch (deleteError) {
+  //         console.error("Error rolling back file:", deleteError);
+  //       }
+  //     }
+  //     console.error("User registration error:", error);
+  //     throw error;
+  //   }
+  // }
+
+  // Add more robust error handling
+  static async register(data, req, res) {
+    let fileName = "";
     try {
-      const { username, email, password, role, createdBy, lastUpdatedBy } =
-        userData;
+      // Validate user data before processing
+      const user = new User(data);
+      const validationResult = user.validate();
 
-      // Validate unique constraints
-      const existingUsername = await UserRepository.findByUsername(username);
-      if (existingUsername) {
-        throw new Error("Username already exists");
+      if (!validationResult.isValid) {
+        throw new Error(validationResult.errors.join(", "));
       }
 
-      const existingEmail = await UserRepository.findByEmail(email);
-      if (existingEmail) {
-        throw new Error("Email already exists");
-      }
+      // Transaction for atomic operations
+      return await prisma.$transaction(
+        async (tx) => {
+          // Check unique constraints within transaction
+          const [existingUsername, existingEmail] = await Promise.all([
+            UserRepository.findByUsername(data.username),
+            UserRepository.findByEmail(data.email),
+          ]);
 
-      // Upload avatar if provided
-      let avatarUrl = "";
-      try {
-        const uploadResponse = await upload.uploadFile(req, res, username);
-        if (uploadResponse.status === 200) {
-          avatarUrl = uploadResponse.url;
-        }
-      } catch (uploadError) {
-        console.warn("Avatar upload failed:", uploadError);
-      }
+          if (existingUsername) {
+            throw new Error("Username already exists");
+          }
 
-      // Hash password
-      const hashedPassword = bcrypt.hashSync(password, salt);
+          if (existingEmail) {
+            throw new Error("Email already exists");
+          }
 
-      // Create user
-      const newUser = await prisma.user.create({
-        data: {
-          username,
-          email,
-          password: hashedPassword,
-          role,
-          avatar: avatarUrl,
-          createdBy: Number(createdBy),
-          lastUpdatedBy: Number(lastUpdatedBy),
+          // More comprehensive file upload with enhanced error handling
+          const avatar = await this.handleFileUpload(req, res, data.username);
+          fileName = avatar ? avatar.fileName : "";
+
+          // Create user with more detailed error tracking
+          const newUser = await tx.user.create({
+            data: {
+              ...data,
+              password: bcrypt.hashSync(data.password, 12),
+              avatar: avatar,
+              // Add audit trail information
+              auditTrail: {
+                create: {
+                  action: "REGISTER",
+                  timestamp: new Date(),
+                  ipAddress: req.ip,
+                },
+              },
+            },
+          });
+
+          console.log(await newUser);
+          return new User(newUser);
         },
-      });
-
-      return new User(newUser);
+        {
+          maxWait: 5000, // default: 2000
+          timeout: 10000, // default: 5000
+        }
+      );
     } catch (error) {
-      console.error("User registration error:", error);
+      if (fileName) {
+        try {
+          const deleteResponse = await upload.deleteFile(fileName);
+          console.log(`Rolled back uploaded file: ${deleteResponse.fileName}`);
+        } catch (deleteError) {
+          console.error("Error rolling back file:", deleteError);
+        }
+      }
+      // Centralized error logging
+      this.logError("User Registration", error);
       throw error;
     }
   }
 
+  // Improved file upload method
+  static async handleFileUpload(req, res, username) {
+    try {
+      const uploadResponse = await upload.uploadFile(req, res, username);
+      return uploadResponse.status === 200 ? uploadResponse.url : null;
+    } catch (error) {
+      console.warn("Avatar upload failed:", error);
+      return null;
+    }
+  }
+
+  // Add a centralized error logging method
+  static logError(context, error) {
+    console.error(`[${context}] Error:`, {
+      message: error.message,
+      stack: error.stack,
+      timestamp: new Date().toISOString(),
+    });
+  }
+
   // Login user
-  static async loginUser(credentials) {
+  static async login(credentials) {
     try {
       const { username } = credentials;
+      console.log(username);
 
       // Find user by username or email
       const user = await prisma.user.findFirst({
@@ -76,6 +181,7 @@ export class UserService {
         },
       });
 
+      console.log(user);
       if (!user) {
         throw new Error("User not found");
       }
@@ -97,9 +203,11 @@ export class UserService {
   }
 
   // Update user
-  static async updateUser(userId, updateData, req, res) {
+  static async updateUser(updateData, req, res) {
+    let fileName = "";
     try {
       const {
+        id,
         username,
         email,
         password,
@@ -110,7 +218,7 @@ export class UserService {
       } = updateData;
 
       // Check if user exists
-      const existingUser = await UserRepository.findById(userId);
+      const existingUser = await UserRepository.findById(id);
       if (!existingUser) {
         throw new Error("User not found");
       }
@@ -121,6 +229,7 @@ export class UserService {
         const uploadResponse = await upload.uploadFile(req, res, username);
         if (uploadResponse.status === 200) {
           avatarUrl = uploadResponse.url;
+          fileName = uploadResponse.fileName;
         }
       } catch (uploadError) {
         console.warn("Avatar upload failed:", uploadError);
@@ -133,7 +242,7 @@ export class UserService {
 
       // Update user
       const updatedUser = await prisma.user.update({
-        where: { id: Number(userId) },
+        where: { id: Number(id) },
         data: {
           username,
           email,
@@ -148,21 +257,29 @@ export class UserService {
 
       return new User(updatedUser);
     } catch (error) {
+      if (fileName) {
+        try {
+          const deleteResponse = await upload.deleteFile(fileName);
+          console.log(`Rolled back uploaded file: ${deleteResponse.fileName}`);
+        } catch (deleteError) {
+          console.error("Error rolling back file:", deleteError);
+        }
+      }
       console.error("User update error:", error);
       throw error;
     }
   }
 
   // Delete user
-  static async deleteUser(userId) {
+  static async deleteUser(id) {
     try {
       const deletedUser = await prisma.user.delete({
-        where: { id: Number(userId) },
+        where: { id: Number(id) },
       });
 
       return new User(deletedUser);
     } catch (error) {
-      console.error(`Error deleting user ${userId}:`, error);
+      console.error(`Error deleting user ${id}:`, error);
       throw error;
     }
   }

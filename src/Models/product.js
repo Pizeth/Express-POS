@@ -1,6 +1,6 @@
 import prisma from "../Configs/connect.js";
 import stock from "./stock.js";
-import upload from "./fileUpload.js";
+import upload from "../Services/fileUpload.js";
 import { getMaxPage } from "../Helpers/function.js";
 
 export const get = async (req) => {

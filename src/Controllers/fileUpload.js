@@ -4,7 +4,7 @@
 // import r2 from "./Config/cloudflare";
 // import { fileURLToPath } from "url";
 // import { dirname } from "path";
-import model from "../Models/fileUpload.js";
+import service from "../Services/fileUpload.js";
 import { success, error } from "../Helpers/form.js";
 
 // ES Module equivalent of __dirname

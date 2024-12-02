@@ -1,30 +1,33 @@
-import model from "../Models/user.js";
+// import model from "../Models/user.js";
+import service from "../Services/user.js";
+import repo from "../Repository/user.js";
 import { success, error } from "../Helpers/form.js";
-import { fPagination } from "../Helpers/function.js";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 const secretKey = process.env.SECRET_KEY || 270400;
 
 export const getUser = (req, res) => {
   // const page = fPagination(req);
-  model
-    .getUser(req)
+  const param = req.param;
+  repo
+    .findUsers(param.page, param.pageSize, param.orderBy, param.orderDirection)
     .then((response) => {
       success(res, 200, response);
     })
     .catch((err) => {
+      console.log(err);
       error(res, 400, err);
     });
 };
 
 export const getUserId = (req, res) => {
-  model
-    .getUserId(req)
+  repo
+    .findById(req.params.id)
     .then((response) => {
       if (response) {
         success(res, 200, response);
       } else {
-        error(res, 400, "User Not Found");
+        error(res, 400, "User not found!");
       }
     })
     .catch((err) => {
@@ -33,8 +36,8 @@ export const getUserId = (req, res) => {
 };
 
 export const getUsername = (req, res) => {
-  model
-    .getUsername(req, res)
+  repo
+    .findByUsername(req.params.username)
     .then((response) => {
       if (response) {
         success(res, 400, response.username + " is already exists!");
@@ -48,9 +51,10 @@ export const getUsername = (req, res) => {
 };
 
 export const getEmail = (req, res) => {
-  model
-    .getEmail(req, res)
+  repo
+    .findByEmail(req.params.email)
     .then((response) => {
+      console.log(response);
       if (response) {
         success(res, 400, response.email + " is already exists!");
       } else {
@@ -61,23 +65,6 @@ export const getEmail = (req, res) => {
       error(res, 400, err);
     });
 };
-
-// export const registerUser = (req, res) => {
-//   const param = req.body;
-//   console.log(param);
-//   if (param.username == null) return error(res, 400, "Username can't be empty");
-//   if (param.password == null) return error(res, 400, "Password can't be empty");
-//   model
-//     .registerUser(req, res)
-//     .then((response) => {
-//       console.log(response);
-//       success(res, 200, "User " + response + " created successfully");
-//     })
-//     .catch((err) => {
-//       console.log("le error is" + err);
-//       error(res, 400, err);
-//     });
-// };
 
 export const registerUser = async (req, res) => {
   try {
@@ -92,7 +79,7 @@ export const registerUser = async (req, res) => {
     }
 
     // Call the model function and await its response
-    const response = await model.registerUser(req, res);
+    const response = await service.register(param, req, res);
 
     // Send success response
     return success(res, 200, `User ${response.username} created successfully`);
@@ -103,10 +90,9 @@ export const registerUser = async (req, res) => {
 };
 
 export const putUser = (req, res) => {
-  //   const param = req.body;
-  // if (param.password != null) return error(res, 400, "Password can't be empty");
-  model
-    .putUser(req)
+  const param = req.body;
+  service
+    .updateUser(param, req, res)
     .then((response) => {
       success(res, 200, "User " + response.username + " updated successfully");
     })
@@ -120,15 +106,15 @@ export const loginUser = (req, res) => {
   if (param.username == null) return error(res, 400, "Username can't be empty");
   if (param.password == null) return error(res, 400, "Password can't be empty");
 
-  model
-    .loginUser(req)
+  service
+    .login(param)
     .then((response) => {
       if (response) {
         if (bcrypt.compareSync(param.password, response.password)) {
           const token = jwt.sign({ id: response.id }, secretKey, {
             expiresIn: "24h",
           });
-          success(res, {
+          success(res, 200, {
             user_id: response.id,
             username: response.username,
             email: response.email,
@@ -149,12 +135,13 @@ export const loginUser = (req, res) => {
 };
 
 export const deleteUser = (req, res) => {
-  model
-    .getUserId(req)
+  const id = req.param.id;
+  repo
+    .findById(id)
     .then((response) => {
       if (response) {
-        model
-          .deleteUser(req)
+        service
+          .deleteUser(id)
           .then((response) => {
             success(res, 200, "Username " + response.name + " success delete");
           })
@@ -169,48 +156,6 @@ export const deleteUser = (req, res) => {
       error(res, 400, err);
     });
 };
-
-// exports.registerUser = (req, res) => {
-//   if (req.body.username == null)
-//     return form.error(res, 400, "Username can't be empty");
-//   if (req.body.password == null)
-//     return form.error(res, 400, "Password can't be empty");
-
-//   model
-//     .registerUser(req)
-//     .then((result) => {
-//       form.success(res, 200, "User created successfully");
-//     })
-//     .catch((err) => {
-//       form.error(res, err);
-//     });
-// };
-
-// exports.loginUser = (req, res) => {
-//   if (req.body.username == null)
-//     return form.error(res, 400, "Username can't be empty");
-//   if (req.body.password == null)
-//     return form.error(res, 400, "Password can't be empty");
-
-//   model.loginUser(req).then((result) => {
-//     if (result.length != 0) {
-//       if (bcrypt.compareSync(req.body.password, result[0].password)) {
-//         const token = jwt.sign({ id: result[0].id }, secretKey, {
-//           expiresIn: "3h",
-//         });
-//         form.success(res, {
-//           user_id: result[0].id,
-//           username: result[0].username,
-//           token: token,
-//         });
-//       } else {
-//         form.error(res, 400, "Password incorrect");
-//       }
-//     } else {
-//       form.error(res, 400, "User not found");
-//     }
-//   });
-// };
 
 // Optional: If you want to export all functions as a single object
 export default {
