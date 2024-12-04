@@ -110,6 +110,8 @@ export const loginUser = (req, res) => {
     .login(param)
     .then((response) => {
       if (response) {
+        console.log(param.password);
+        console.log(response);
         if (bcrypt.compareSync(param.password, response.password)) {
           const token = jwt.sign({ id: response.id }, secretKey, {
             expiresIn: "24h",
@@ -130,6 +132,7 @@ export const loginUser = (req, res) => {
       }
     })
     .catch((err) => {
+      console.log(err);
       error(res, 400, err);
     });
 };

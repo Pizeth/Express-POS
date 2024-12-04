@@ -59,7 +59,8 @@ export const uploadFile = async (req, res, fileName) => {
     return fileMeta;
   } catch (error) {
     console.error("Upload error:", error);
-    res.status(500).json({ error: "Failed to upload file" });
+    return null;
+    // res.status(500).json({ error: "Failed to upload file" });
   }
 };
 

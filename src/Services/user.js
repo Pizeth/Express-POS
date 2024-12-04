@@ -3,7 +3,9 @@ import prisma from "../Configs/connect.js";
 import User from "../Models/user.js";
 import UserRepository from "../Repository/user.js";
 import upload from "../Services/fileUpload.js";
+import { logError } from "../Helpers/form.js";
 import bcrypt from "bcrypt";
+import user from "../Controllers/user.js";
 
 const salt = bcrypt.genSaltSync(10);
 
@@ -81,6 +83,8 @@ export class UserService {
         throw new Error(validationResult.errors.join(", "));
       }
 
+      // More comprehensive file upload with enhanced error handling
+
       // Transaction for atomic operations
       return await prisma.$transaction(
         async (tx) => {
@@ -98,16 +102,18 @@ export class UserService {
             throw new Error("Email already exists");
           }
 
-          // More comprehensive file upload with enhanced error handling
-          const avatar = await this.handleFileUpload(req, res, data.username);
-          fileName = avatar ? avatar.fileName : "";
+          const avatar = await upload.uploadFile(req, res, user.username);
+          if (avatar) {
+            fileName = avatar.fileName;
+            user.update({
+              avatar: avatar.url,
+            });
+          }
 
           // Create user with more detailed error tracking
           const newUser = await tx.user.create({
             data: {
-              ...data,
-              password: bcrypt.hashSync(data.password, 12),
-              avatar: avatar,
+              ...user.toData(),
               // Add audit trail information
               auditTrail: {
                 create: {
@@ -131,42 +137,21 @@ export class UserService {
       if (fileName) {
         try {
           const deleteResponse = await upload.deleteFile(fileName);
-          console.log(`Rolled back uploaded file: ${deleteResponse.fileName}`);
+          console.warn(`Rolled back uploaded file: ${deleteResponse.fileName}`);
         } catch (deleteError) {
           console.error("Error rolling back file:", deleteError);
         }
       }
       // Centralized error logging
-      this.logError("User Registration", error);
+      logError("User Registration", error);
       throw error;
     }
-  }
-
-  // Improved file upload method
-  static async handleFileUpload(req, res, username) {
-    try {
-      const uploadResponse = await upload.uploadFile(req, res, username);
-      return uploadResponse.status === 200 ? uploadResponse.url : null;
-    } catch (error) {
-      console.warn("Avatar upload failed:", error);
-      return null;
-    }
-  }
-
-  // Add a centralized error logging method
-  static logError(context, error) {
-    console.error(`[${context}] Error:`, {
-      message: error.message,
-      stack: error.stack,
-      timestamp: new Date().toISOString(),
-    });
   }
 
   // Login user
   static async login(credentials) {
     try {
       const { username } = credentials;
-      console.log(username);
 
       // Find user by username or email
       const user = await prisma.user.findFirst({
@@ -181,7 +166,6 @@ export class UserService {
         },
       });
 
-      console.log(user);
       if (!user) {
         throw new Error("User not found");
       }
@@ -191,6 +175,7 @@ export class UserService {
         credentials.password,
         user.password
       );
+
       if (!isPasswordValid) {
         throw new Error("Invalid credentials");
       }

@@ -14,6 +14,17 @@ generator client {
   provider = "prisma-client-js"
 }
 
+model AuditTrail {
+  id              Int               @id @default(autoincrement())
+  action          String
+  timestamp       DateTime
+  ipAddress       String            @map("ip_address")
+  userId          Int               @map("user_id")
+  user            User              @relation(fields: [userId], references: [id])
+
+  Category Category[]
+}
+
 model User {
   id              Int               @id @default(autoincrement())
   username        String            @unique @db.VarChar(50)
@@ -32,6 +43,7 @@ model User {
   lastUpdatedBy   Int               @map("last_updated_by")
   lastUpdateDate  DateTime          @default(now()) @db.Timestamp(6) @updatedAt @map("last_updated_date")
   objectVersionId Int               @default(1) @map("object_version_id")
+  auditTrail      AuditTrail[]     
 
   @@index([username, email])
   @@unique([username, email])
@@ -103,6 +115,7 @@ model Category {
 
   // Relationships
   subCategories   SubCategory[]     
+  auditTrail      AuditTrail[] 
   @@map("categories")
 }
 

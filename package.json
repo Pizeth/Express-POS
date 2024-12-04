@@ -18,7 +18,7 @@
   "license": "ISC",
   "dependencies": {
     "@aws-sdk/client-s3": "^3.689.0",
-    "@prisma/client": "^6.0.0",
+    "@prisma/client": "^6.0.1",
     "bcrypt": "^5.1.1",
     "body-parser": "^1.20.2",
     "cors": "^2.8.5",
@@ -30,14 +30,16 @@
     "mysql": "^2.18.1",
     "mysql2": "^3.11.0",
     "postgres": "^3.4.4",
-    "ra-data-simple-prisma": "^5.2.1"
+    "ra-data-simple-prisma": "^5.2.1",
+    "validator": "^13.12.0",
+    "zod": "^3.23.8"
   },
   "devDependencies": {
     "@types/express": "^5.0.0",
     "@types/node": "^22.9.0",
     "concurrently": "^9.1.0",
     "nodemon": "^3.1.7",
-    "prisma": "^6.0.0",
+    "prisma": "^6.0.1",
     "ts-node": "^10.9.2",
     "tsx": "^4.19.2",
     "typescript": "^5.6.3",
