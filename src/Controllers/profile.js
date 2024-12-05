@@ -1,6 +1,5 @@
 import model from "../Models/profile.js";
-import { success, error } from "../Helpers/form.js";
-import { fPagination } from "../Helpers/function.js";
+import { success, error } from "../Utils/form.js";
 
 export const get = (req, res) => {
   // const page = fPagination(req);

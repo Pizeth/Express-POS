@@ -1,6 +1,6 @@
 import prisma from "../Configs/connect.js";
 import qr from "../Configs/qrCode.js";
-import pagination from "../Helpers/function.js";
+import pagination from "../Utils/function.js";
 
 export const get = async (req) => {
   try {

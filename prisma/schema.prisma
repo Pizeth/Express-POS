@@ -35,6 +35,10 @@ model User {
   isBan           Boolean           @default(false) @map("is_ban")
   role            Role              @default(USER)
 
+  // Authentication tracking
+  loginAttempts   Int               @default(0)
+  lastLogin       DateTime?         @db.Timestamp(6)          
+
   // Tracking
   enabledFlag     Boolean           @default(true) @map("enabled_flag")
   deletedAt       DateTime?         @map("deleted_at")

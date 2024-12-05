@@ -49,7 +49,7 @@ import stockRoutes from "./stock.js";
 import profileRoutes from "./profile.js";
 import userRoutes from "./user.js";
 import uploadRoutes from "./fileUpload.js";
-import { error } from "../Helpers/form.js";
+import { error } from "../Utils/form.js";
 
 const secretKey = process.env.SECRET_KEY || 270400;
 const Router = express.Router();

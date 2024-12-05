@@ -73,8 +73,7 @@
 
 // Controllers/category.js
 import model from "../Models/category.js";
-import { success, error } from "../Helpers/form.js";
-import { fPagination } from "../Helpers/function.js";
+import { success, error } from "../Utils/form.js";
 
 export const get = (req, res) => {
   // const page = fPagination(req);

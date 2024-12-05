@@ -1,7 +1,6 @@
 // Models/category.js
 import prisma from "../Configs/connect.js";
 import upload from "../Services/fileUpload.js";
-import { getMaxPage } from "../Helpers/function.js";
 import product from "./product.js";
 
 export const get = async (req) => {

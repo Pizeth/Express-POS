@@ -3,9 +3,9 @@ import prisma from "../Configs/connect.js";
 import User from "../Models/user.js";
 import UserRepository from "../Repository/user.js";
 import upload from "../Services/fileUpload.js";
-import { logError } from "../Helpers/form.js";
+import { logError } from "../Utils/form.js";
 import bcrypt from "bcrypt";
-import user from "../Controllers/user.js";
+import auth from "../Utils/auth.js";
 
 const salt = bcrypt.genSaltSync(10);
 
@@ -143,13 +143,13 @@ export class UserService {
         }
       }
       // Centralized error logging
-      logError("User Registration", error);
+      logError("User Registration", error, req);
       throw error;
     }
   }
 
   // Login user
-  static async login(credentials) {
+  static async login(credentials, req) {
     try {
       const { username } = credentials;
 
@@ -167,7 +167,7 @@ export class UserService {
       });
 
       if (!user) {
-        throw new Error("User not found");
+        throw new Error("User not found!");
       }
 
       // Verify password
@@ -180,9 +180,21 @@ export class UserService {
         throw new Error("Invalid credentials");
       }
 
-      return new User(user);
+      // Generate authentication token
+      const token = auth.generateToken({
+        id: user.id,
+        username: user.username,
+        email: user.email,
+        role: user.role,
+        ip: req.ip,
+      });
+
+      return {
+        data: new User(user),
+        token: token,
+      };
     } catch (error) {
-      console.error("User login error:", error);
+      logError("User login error:", error, req);
       throw error;
     }
   }

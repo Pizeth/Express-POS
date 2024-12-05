@@ -1,10 +1,7 @@
 // import model from "../Models/user.js";
 import service from "../Services/user.js";
 import repo from "../Repository/user.js";
-import { success, error } from "../Helpers/form.js";
-import bcrypt from "bcrypt";
-import jwt from "jsonwebtoken";
-const secretKey = process.env.SECRET_KEY || 270400;
+import { success, error } from "../Utils/form.js";
 
 export const getUser = (req, res) => {
   // const page = fPagination(req);
@@ -107,26 +104,42 @@ export const loginUser = (req, res) => {
   if (param.password == null) return error(res, 400, "Password can't be empty");
 
   service
-    .login(param)
+    .login(param, req)
     .then((response) => {
       if (response) {
-        console.log(param.password);
-        console.log(response);
-        if (bcrypt.compareSync(param.password, response.password)) {
-          const token = jwt.sign({ id: response.id }, secretKey, {
-            expiresIn: "24h",
-          });
-          success(res, 200, {
-            user_id: response.id,
-            username: response.username,
-            email: response.email,
-            role: response.role,
-            avatar: response.avatar,
-            token: token,
-          });
-        } else {
-          error(res, 400, "Password is incorrect");
-        }
+        success(res, 200, {
+          user_id: response.data.id,
+          username: response.data.username,
+          email: response.data.email,
+          role: response.data.role,
+          avatar: response.data.avatar,
+          token: response.token,
+        });
+        // if (bcrypt.compareSync(param.password, response.password)) {
+        //   const token = jwt.sign(
+        //     {
+        //       id: response.id,
+        //       username: response.username,
+        //       email: response.email,
+        //       role: response.role,
+        //       ip: req.ip,
+        //     },
+        //     secretKey,
+        //     {
+        //       expiresIn: "7d",
+        //     }
+        //   );
+        //   success(res, 200, {
+        //     user_id: response.id,
+        //     username: response.username,
+        //     email: response.email,
+        //     role: response.role,
+        //     avatar: response.avatar,
+        //     token: token,
+        //   });
+        // } else {
+        //   error(res, 400, "Password is incorrect");
+        // }
       } else {
         error(res, 400, "User not found");
       }
