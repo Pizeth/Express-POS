@@ -17,12 +17,45 @@ generator client {
 model AuditTrail {
   id              Int               @id @default(autoincrement())
   action          String
-  timestamp       DateTime
+  timestamp       DateTime  
   ipAddress       String            @map("ip_address")
   userId          Int               @map("user_id")
   user            User              @relation(fields: [userId], references: [id])
 
-  Category Category[]
+  description     String?
+  
+  @@index([userId, timestamp])
+}
+
+// Multi-Factor Authentication Backup Codes
+model MFABackupCode {
+  id              Int               @id @default(autoincrement())
+  userId          Int               @map("user_id")
+  code            String            @unique
+  used            Boolean           @default(false)
+  expiresAt       DateTime          @map("expires_at")
+}
+
+model LoginAttempt {
+  id              Int               @id @default(autoincrement())
+  userId          Int?              @map("user_id")
+  username        String
+  ipAddress       String            @map("ip_address")
+  timestamp       DateTime          @default(now())
+  status          LoginStatus
+  userAgent       String?           @map("user_agent")
+}
+
+// Refresh Token Model
+model RefreshToken {
+  id              Int               @id @default(autoincrement())
+  token           String            @unique
+  userId          Int               @map("user_id")
+  user            User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt       DateTime          @map("expires_at")
+  createdAt       DateTime          @map("created_at") @default(now())
+  
+  @@index([userId])
 }
 
 model User {
@@ -32,21 +65,35 @@ model User {
   password        String        
   avatar          String?           @db.VarChar(255)
   profile         Profile?  
-  isBan           Boolean           @default(false) @map("is_ban")
+
+   // Advanced Authentication Fields
   role            Role              @default(USER)
+  authMethod      AuthMethod?       @map("auth_method") @default(PASSWORD)
+
+  // Multi-Factor Authentication
+  mfaSecret       String?           @map("mfa_secret")
+  mfaEnabled      Boolean           @map("mfa_enabled") @default(false)
 
   // Authentication tracking
-  loginAttempts   Int               @default(0)
-  lastLogin       DateTime?         @db.Timestamp(6)          
+  loginAttempts   Int               @map("login_attemps") @default(0)
+  lastLogin       DateTime?         @map("last_login") @db.Timestamp(6)  
 
-  // Tracking
+  // Token Management
+  refreshTokens   RefreshToken[]      
+
+  // Security Flags
+  isBan           Boolean           @default(false) @map("is_ban")
   enabledFlag     Boolean           @default(true) @map("enabled_flag")
+  isLocked        Boolean           @default(false) @map("is_locked")  
+
+  // Audit and Tracking
   deletedAt       DateTime?         @map("deleted_at")
   createdBy       Int               @map("created_by")
   creationDate    DateTime          @default(now()) @db.Timestamp(6) @map("creation_date")         
   lastUpdatedBy   Int               @map("last_updated_by")
   lastUpdateDate  DateTime          @default(now()) @db.Timestamp(6) @updatedAt @map("last_updated_date")
   objectVersionId Int               @default(1) @map("object_version_id")
+
   auditTrail      AuditTrail[]     
 
   @@index([username, email])
@@ -118,8 +165,7 @@ model Category {
   objectVersionId Int               @default(1) @map("object_version_id")
 
   // Relationships
-  subCategories   SubCategory[]     
-  auditTrail      AuditTrail[] 
+  subCategories   SubCategory[]  
   @@map("categories")
 }
 
@@ -677,6 +723,22 @@ enum Role {
   ADMIN
   SUPER_ADMIN
   @@map("role_enum")
+}
+
+enum AuthMethod {
+  PASSWORD
+  GOOGLE
+  MICROSOFT
+  APPLE
+  FACEBOOK
+  TWITTER
+  GITHUB
+}
+
+enum LoginStatus {
+  SUCCESS
+  FAILED
+  LOCKED
 }
 
 enum CashierType {

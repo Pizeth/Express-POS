@@ -14,6 +14,7 @@ export class UserRepository {
         orderDirection,
         include: {
           profile: true,
+          refreshTokens: true,
         },
       });
       result.data.map((data) => new User(data));
@@ -31,6 +32,8 @@ export class UserRepository {
         where: { id: Number(id) },
         include: {
           profile: true,
+          refreshTokens: true,
+          auditTrail: true,
         },
       });
       return user ? new User(user) : null;
@@ -190,32 +193,32 @@ export class UserRepository {
       )
     );
   }
-
-  // // Enhanced search method
-  // static async searchUsers(criteria, options = {}) {
-  //   const {
-  //     page = 1,
-  //     pageSize = 10,
-  //     orderBy = "creationDate",
-  //     orderDirection = "desc",
-  //   } = options;
-
-  //   return prisma.user.findMany({
-  //     where: {
-  //       OR: [
-  //         { username: { contains: criteria, mode: "insensitive" } },
-  //         { email: { contains: criteria, mode: "insensitive" } },
-  //       ],
-  //       deletedAt: null, // Soft delete support
-  //     },
-  //     include: {
-  //       profile: true,
-  //     },
-  //     orderBy: { [orderBy]: orderDirection },
-  //     skip: (page - 1) * pageSize,
-  //     take: pageSize,
-  //   });
-  // }
 }
 
 export default UserRepository;
+
+// // Enhanced search method
+// static async searchUsers(criteria, options = {}) {
+//   const {
+//     page = 1,
+//     pageSize = 10,
+//     orderBy = "creationDate",
+//     orderDirection = "desc",
+//   } = options;
+
+//   return prisma.user.findMany({
+//     where: {
+//       OR: [
+//         { username: { contains: criteria, mode: "insensitive" } },
+//         { email: { contains: criteria, mode: "insensitive" } },
+//       ],
+//       deletedAt: null, // Soft delete support
+//     },
+//     include: {
+//       profile: true,
+//     },
+//     orderBy: { [orderBy]: orderDirection },
+//     skip: (page - 1) * pageSize,
+//     take: pageSize,
+//   });
+// }

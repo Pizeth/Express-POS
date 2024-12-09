@@ -30,13 +30,31 @@ export const UserSchema = z.object({
   ),
   avatar: z.string().nullable().optional(),
   profile: z.record(z.any()).nullable().optional(),
-  isBan: z.coerce.boolean().optional().default(false),
-  enabledFlag: z.coerce.boolean().optional().default(true),
-  deletedAt: z.date().nullable().optional(),
   role: z
     .enum(["SUPER_ADMIN", "ADMIN", "MANAGER", "CASHIER", "USER"])
     .optional()
     .default("USER"),
+  authMethod: z
+    .enum([
+      "PASSWORD",
+      "GOOGLE",
+      "MICROSOFT",
+      "APPLE",
+      "FACEBOOK",
+      "TWITTER",
+      "GITHUB",
+    ])
+    .optional()
+    .default("PASSWORD"),
+  mfaSecret: z.string().nullable().optional(),
+  mfaEnabled: z.coerce.boolean().optional().default(false),
+  loginAttempts: z.coerce.number().int().default(0),
+  lastLogin: z.date().optional(),
+  refreshTokens: z.record(z.any()).optional(),
+  isBan: z.coerce.boolean().optional().default(false),
+  enabledFlag: z.coerce.boolean().optional().default(true),
+  isLocked: z.coerce.boolean().optional().default(false),
+  deletedAt: z.date().nullable().optional(),
   createdBy: z.coerce.number().int(),
   createdAt: z
     .date()
@@ -48,7 +66,19 @@ export const UserSchema = z.object({
     .optional()
     .default(() => new Date()),
   objectVersionId: z.number().int().optional().default(1),
+  auditTrail: z.record(z.any()).optional(),
 });
+
+// Input schema for creation (exclude optional/generated fields)
+export const CreateUserSchema = UserSchema.omit({
+  id: true,
+  creationDate: true,
+  lastUpdateDate: true,
+  objectVersionId: true,
+});
+
+// Input schema for update (make all fields optional)
+export const UpdateUserSchema = CreateUserSchema.partial();
 
 export class User {
   constructor(data = {}) {
@@ -207,6 +237,9 @@ export class User {
   }
 }
 
+// export default User;
+export default User;
+
 // export class User {
 //   constructor(data = {}) {
 //     const VALID_ROLES = ["USER", "ADMIN", "MODERATOR"];
@@ -297,6 +330,3 @@ export class User {
 //     };
 //   }
 // }
-
-// export default User;
-export default User;

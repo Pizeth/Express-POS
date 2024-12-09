@@ -115,31 +115,6 @@ export const loginUser = (req, res) => {
           avatar: response.data.avatar,
           token: response.token,
         });
-        // if (bcrypt.compareSync(param.password, response.password)) {
-        //   const token = jwt.sign(
-        //     {
-        //       id: response.id,
-        //       username: response.username,
-        //       email: response.email,
-        //       role: response.role,
-        //       ip: req.ip,
-        //     },
-        //     secretKey,
-        //     {
-        //       expiresIn: "7d",
-        //     }
-        //   );
-        //   success(res, 200, {
-        //     user_id: response.id,
-        //     username: response.username,
-        //     email: response.email,
-        //     role: response.role,
-        //     avatar: response.avatar,
-        //     token: token,
-        //   });
-        // } else {
-        //   error(res, 400, "Password is incorrect");
-        // }
       } else {
         error(res, 400, "User not found");
       }

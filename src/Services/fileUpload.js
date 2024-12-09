@@ -15,15 +15,8 @@ export const uploadFile = async (req, res, fileName) => {
         data: "No file upload",
       };
       return UploadError;
-      // return res.status(400).json({ error: "No file uploaded" });
     }
-    // const filenameDate =
-    //   fileName +
-    //   `_${new Date().toJSON().slice(0, 10)}_` +
-    //   timeFormatter.getUnixTimestamp();
-    // console.log(filenameDate);
     const file = req.file;
-    // const fileName = `${Date.now()}-${file.originalname}`;
     const buffer = file.buffer;
     const mimetype = file.mimetype;
 
@@ -35,32 +28,10 @@ export const uploadFile = async (req, res, fileName) => {
       mimetype
     );
 
-    // console.log("le file name is " + __filename);
-    // console.log("le directory name is " + __dirname);
-
-    // Upload to R2
-    // const command = new PutObjectCommand({
-    //   Bucket: process.env.R2_BUCKET_NAME,
-    //   Key: fileName,
-    //   Body: file.buffer,
-    //   ContentType: file.mimetype,
-    // });
-
-    // await r2.send(command);
-
-    // // Generate the public URL (if your bucket is public)
-    // const publicUrl = `${process.env.R2_PUBLIC_DOMAIN}/${fileName}`;
-
-    // const fileMeta = res.json({
-    //   message: "File uploaded successfully",
-    //   fileName,
-    //   url: publicUrl,
-    // });
     return fileMeta;
   } catch (error) {
     console.error("Upload error:", error);
     return null;
-    // res.status(500).json({ error: "Failed to upload file" });
   }
 };
 
@@ -73,6 +44,36 @@ export const deleteFile = async (fileName) => {
     throw error;
   }
 };
+
+export default { uploadFile, deleteFile };
+
+// const filenameDate =
+//   fileName +
+//   `_${new Date().toJSON().slice(0, 10)}_` +
+//   timeFormatter.getUnixTimestamp();
+// console.log(filenameDate);
+
+// console.log("le file name is " + __filename);
+// console.log("le directory name is " + __dirname);
+
+// Upload to R2
+// const command = new PutObjectCommand({
+//   Bucket: process.env.R2_BUCKET_NAME,
+//   Key: fileName,
+//   Body: file.buffer,
+//   ContentType: file.mimetype,
+// });
+
+// await r2.send(command);
+
+// // Generate the public URL (if your bucket is public)
+// const publicUrl = `${process.env.R2_PUBLIC_DOMAIN}/${fileName}`;
+
+// const fileMeta = res.json({
+//   message: "File uploaded successfully",
+//   fileName,
+//   url: publicUrl,
+// });
 
 // app.post("/upload", upload.single("file"), async (req, res) => {
 //     try {
@@ -106,5 +107,3 @@ export const deleteFile = async (fileName) => {
 //       res.status(500).json({ error: "Failed to upload file" });
 //     }
 //   });
-
-export default { uploadFile, deleteFile };

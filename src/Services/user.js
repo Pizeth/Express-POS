@@ -11,66 +11,6 @@ const salt = bcrypt.genSaltSync(10);
 
 export class UserService {
   // Register a new user
-  // static async register(userData, req, res) {
-  //   let fileName = "";
-  //   try {
-  //     const { username, email, password, role, createdBy, lastUpdatedBy } =
-  //       userData;
-
-  //     // Validate unique constraints
-  //     const existingUsername = await UserRepository.findByUsername(username);
-  //     if (existingUsername) {
-  //       throw new Error("Username already exists");
-  //     }
-
-  //     const existingEmail = await UserRepository.findByEmail(email);
-  //     if (existingEmail) {
-  //       throw new Error("Email already exists");
-  //     }
-
-  //     // Upload avatar if provided
-  //     let avatar = "";
-  //     try {
-  //       const uploadResponse = await upload.uploadFile(req, res, username);
-  //       if (uploadResponse.status === 200) {
-  //         avatar = uploadResponse.url;
-  //         fileName = uploadResponse.fileName;
-  //       }
-  //     } catch (uploadError) {
-  //       console.warn("Avatar upload failed:", uploadError);
-  //     }
-
-  //     // Hash password
-  //     const hashedPassword = bcrypt.hashSync(password, salt);
-
-  //     // Create user
-  //     const newUser = await prisma.user.create({
-  //       data: {
-  //         username,
-  //         email,
-  //         password: hashedPassword,
-  //         role,
-  //         avatar: avatar,
-  //         createdBy: Number(createdBy),
-  //         lastUpdatedBy: Number(lastUpdatedBy),
-  //       },
-  //     });
-
-  //     return new User(newUser);
-  //   } catch (error) {
-  //     if (fileName) {
-  //       try {
-  //         const deleteResponse = await upload.deleteFile(fileName);
-  //         console.log(`Rolled back uploaded file: ${deleteResponse.fileName}`);
-  //       } catch (deleteError) {
-  //         console.error("Error rolling back file:", deleteError);
-  //       }
-  //     }
-  //     console.error("User registration error:", error);
-  //     throw error;
-  //   }
-  // }
-
   // Add more robust error handling
   static async register(data, req, res) {
     let fileName = "";
@@ -82,8 +22,6 @@ export class UserService {
       if (!validationResult.isValid) {
         throw new Error(validationResult.errors.join(", "));
       }
-
-      // More comprehensive file upload with enhanced error handling
 
       // Transaction for atomic operations
       return await prisma.$transaction(
@@ -181,7 +119,7 @@ export class UserService {
       }
 
       // Generate authentication token
-      const token = auth.generateToken({
+      const token = auth.generateAccessToken({
         id: user.id,
         username: user.username,
         email: user.email,
@@ -283,3 +221,63 @@ export class UserService {
 }
 
 export default UserService;
+
+// static async register(userData, req, res) {
+//   let fileName = "";
+//   try {
+//     const { username, email, password, role, createdBy, lastUpdatedBy } =
+//       userData;
+
+//     // Validate unique constraints
+//     const existingUsername = await UserRepository.findByUsername(username);
+//     if (existingUsername) {
+//       throw new Error("Username already exists");
+//     }
+
+//     const existingEmail = await UserRepository.findByEmail(email);
+//     if (existingEmail) {
+//       throw new Error("Email already exists");
+//     }
+
+//     // Upload avatar if provided
+//     let avatar = "";
+//     try {
+//       const uploadResponse = await upload.uploadFile(req, res, username);
+//       if (uploadResponse.status === 200) {
+//         avatar = uploadResponse.url;
+//         fileName = uploadResponse.fileName;
+//       }
+//     } catch (uploadError) {
+//       console.warn("Avatar upload failed:", uploadError);
+//     }
+
+//     // Hash password
+//     const hashedPassword = bcrypt.hashSync(password, salt);
+
+//     // Create user
+//     const newUser = await prisma.user.create({
+//       data: {
+//         username,
+//         email,
+//         password: hashedPassword,
+//         role,
+//         avatar: avatar,
+//         createdBy: Number(createdBy),
+//         lastUpdatedBy: Number(lastUpdatedBy),
+//       },
+//     });
+
+//     return new User(newUser);
+//   } catch (error) {
+//     if (fileName) {
+//       try {
+//         const deleteResponse = await upload.deleteFile(fileName);
+//         console.log(`Rolled back uploaded file: ${deleteResponse.fileName}`);
+//       } catch (deleteError) {
+//         console.error("Error rolling back file:", deleteError);
+//       }
+//     }
+//     console.error("User registration error:", error);
+//     throw error;
+//   }
+// }
