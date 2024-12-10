@@ -1,7 +1,17 @@
 // models/user.js
 import util from "util";
-import bcrypt from "bcrypt";
+import passwordUtils from "../Utils/passwordUtils.js";
 import z from "zod";
+
+// Utility function to format Zod errors
+// Enhanced Zod error handling utility
+function formatZodError(error) {
+  return error.errors.map((err) => ({
+    path: err.path.join("."), // Get the full path of the error
+    message: err.message,
+    code: err.code,
+  }));
+}
 
 // Zod schema for user validation
 export const UserSchema = z.object({
@@ -49,7 +59,7 @@ export const UserSchema = z.object({
   mfaSecret: z.string().nullable().optional(),
   mfaEnabled: z.coerce.boolean().optional().default(false),
   loginAttempts: z.coerce.number().int().default(0),
-  lastLogin: z.date().optional(),
+  lastLogin: z.date().nullable().optional(),
   refreshTokens: z.record(z.any()).optional(),
   isBan: z.coerce.boolean().optional().default(false),
   enabledFlag: z.coerce.boolean().optional().default(true),
@@ -66,7 +76,7 @@ export const UserSchema = z.object({
     .optional()
     .default(() => new Date()),
   objectVersionId: z.number().int().optional().default(1),
-  auditTrail: z.record(z.any()).optional(),
+  auditTrail: z.array(z.record(z.any()).optional()),
 });
 
 // Input schema for creation (exclude optional/generated fields)
@@ -78,10 +88,21 @@ export const CreateUserSchema = UserSchema.omit({
 });
 
 // Input schema for update (make all fields optional)
-export const UpdateUserSchema = CreateUserSchema.partial();
+export const UpdateUserSchema = UserSchema.partial();
+
+export const LoginSchema = UserSchema.pick({
+  username: true,
+  password: true,
+});
 
 export class User {
+  // Private field for storing password securely
+  #password;
+  #data;
   constructor(data = {}) {
+    // console.log(data);
+    // console.log("update data");
+    // console.log(data);
     try {
       // If password is already hashed, use it directly
       // Otherwise, hash the password if it's a plain text password
@@ -93,7 +114,7 @@ export class User {
           (data.password.startsWith("$2") || data.password.length >= 60)
             ? data.password
             : data.password
-            ? this.hashPassword(data.password)
+            ? passwordUtils.hash(data.password)
             : undefined,
         createdAt: data.createdAt ? new Date(data.createdAt) : new Date(),
         lastUpdatedAt: data.lastUpdatedAt
@@ -101,84 +122,148 @@ export class User {
           : new Date(),
       };
 
+      // console.log("processedData in model");
+      // console.log(processedData);
       // Validate and parse input data
-      this._data = UserSchema.parse(processedData);
+      this.#data = UserSchema.parse(processedData);
+
+      console.log("after parse");
+      console.log(this.#data);
+
+      // Securely store the password
+      this.#password = this.#data.password;
+
+      // Remove password from the main data object
+      delete this.#data.password;
     } catch (error) {
+      // if (error instanceof z.ZodError) {
+      //   console.log(error);
+      //   // Collect and throw validation errors
+      //   const errorMessages = error.errors.map((err) => err.message);
+      //   throw new Error(`Validation failed: ${errorMessages.join(", ")}`);
+      // }
+
       if (error instanceof z.ZodError) {
-        // Collect and throw validation errors
-        const errorMessages = error.errors.map((err) => err.message);
-        throw new Error(`Validation failed: ${errorMessages.join(", ")}`);
+        // Enhanced error handling with detailed path information
+        const errorMessages = formatZodError(error);
+        throw new Error(
+          `Validation failed: ${JSON.stringify(errorMessages, null, 2)}`
+        );
       }
       throw error;
     }
   }
 
-  // Getter methods for accessing properties
-  get id() {
-    return this._data.id;
-  }
-  get username() {
-    return this._data.username;
-  }
-  get email() {
-    return this._data.email;
-  }
-  get avatar() {
-    return this._data.avatar;
-  }
-  get profile() {
-    return this._data.profile;
-  }
-  get isBan() {
-    return this._data.isBan;
-  }
-  get enabledFlag() {
-    return this._data.enabledFlag;
-  }
-  get deletedAt() {
-    return this._data.deletedAt;
-  }
-  get role() {
-    return this._data.role;
-  }
-  get createdBy() {
-    return this._data.createdBy;
-  }
-  get createdAt() {
-    return this._data.createdAt;
-  }
-  get lastUpdatedBy() {
-    return this._data.lastUpdatedBy;
-  }
-  get lastUpdatedAt() {
-    return this._data.lastUpdatedAt;
-  }
-  get objectVersionId() {
-    return this._data.objectVersionId;
+  // Secure method to check password without exposing it
+  verifyPassword(inputPassword) {
+    return passwordUtils.compare(inputPassword, this.#password);
   }
 
-  // Password hashing method
-  hashPassword(password) {
-    return bcrypt.hashSync(password, 12);
+  // Getter methods for accessing properties
+  get id() {
+    return this.#data.id;
   }
+  get username() {
+    return this.#data.username;
+  }
+  get email() {
+    return this.#data.email;
+  }
+  get avatar() {
+    return this.#data.avatar;
+  }
+  get profile() {
+    return this.#data.profile;
+  }
+  get isBan() {
+    return this.#data.isBan;
+  }
+  get enabledFlag() {
+    return this.#data.enabledFlag;
+  }
+  get deletedAt() {
+    return this.#data.deletedAt;
+  }
+  get role() {
+    return this.#data.role;
+  }
+  get createdBy() {
+    return this.#data.createdBy;
+  }
+  get createdAt() {
+    return this.#data.createdAt;
+  }
+  get lastUpdatedBy() {
+    return this.#data.lastUpdatedBy;
+  }
+  get lastUpdatedAt() {
+    return this.#data.lastUpdatedAt;
+  }
+  get objectVersionId() {
+    return this.#data.objectVersionId;
+  }
+
+  // // Method to set a new password with hashing
+  // setPassword(password) {
+  //   // Validate password first using Zod schema
+  //   UserSchema.pick({ password: true }).parse({ password });
+
+  //   // Hash and update password
+  //   this.#data = {
+  //     ...this.#data,
+  //     password: passwordUtils.hash(password),
+  //   };
+  // }
 
   // Method to set a new password with hashing
   setPassword(password) {
-    // Validate password first using Zod schema
-    UserSchema.pick({ password: true }).parse({ password });
+    try {
+      // Validate password first using Zod schema
+      UserSchema.pick({ password: true }).parse({ password });
 
-    // Hash and update password
-    this._data = {
-      ...this._data,
-      password: this.hashPassword(password),
-    };
+      // Hash and update password
+      this.#password = passwordUtils.hash(password);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        const errorMessages = formatZodError(error);
+        throw new Error(
+          `Password validation failed: ${JSON.stringify(
+            errorMessages,
+            null,
+            2
+          )}`
+        );
+      }
+      throw error;
+    }
   }
 
   // Validate method (optional, as Zod does validation during construction)
+  // validate() {
+  //   try {
+  //     UserSchema.parse(this.#data);
+  //     // this.setPassword(this.data.password);
+  //     return {
+  //       isValid: true,
+  //       errors: [],
+  //     };
+  //   } catch (error) {
+  //     if (error instanceof z.ZodError) {
+  //       return {
+  //         isValid: false,
+  //         errors: error.errors.map((err) => err.message),
+  //       };
+  //     }
+  //     throw error;
+  //   }
+  // }
+
+  // Validate method with enhanced error reporting
   validate() {
     try {
-      UserSchema.parse(this._data);
-      // this.setPassword(this.data.password);
+      // Reconstruct the full data object for validation
+      const fullData = { ...this.#data, password: this.#password };
+      UserSchema.parse(fullData);
       return {
         isValid: true,
         errors: [],
@@ -187,7 +272,7 @@ export class User {
       if (error instanceof z.ZodError) {
         return {
           isValid: false,
-          errors: error.errors.map((err) => err.message),
+          errors: formatZodError(error),
         };
       }
       throw error;
@@ -195,44 +280,96 @@ export class User {
   }
 
   // Method to update user data with validation
+  // update(updates = {}) {
+  //   try {
+  //     // Merge existing data with updates and re-validate
+  //     this.#data = UserSchema.parse({
+  //       ...this.#data,
+  //       ...updates,
+  //       lastUpdatedAt: new Date(),
+  //     });
+  //     return this;
+  //   } catch (error) {
+  //     if (error instanceof z.ZodError) {
+  //       const errorMessages = error.errors.map((err) => err.message);
+  //       throw new Error(
+  //         `Update validation failed: ${errorMessages.join(", ")}`
+  //       );
+  //     }
+  //     throw error;
+  //   }
+  // }
+
+  // Method to update user data with validation
   update(updates = {}) {
     try {
       // Merge existing data with updates and re-validate
-      this._data = UserSchema.parse({
-        ...this._data,
+      const fullData = {
+        ...this.#data,
         ...updates,
+        password: this.#password,
         lastUpdatedAt: new Date(),
-      });
+      };
+
+      this.#data = UserSchema.parse(fullData);
+
+      // Remove password from main data object again
+      delete this.#data.password;
+
       return this;
     } catch (error) {
       if (error instanceof z.ZodError) {
-        const errorMessages = error.errors.map((err) => err.message);
+        const errorMessages = formatZodError(error);
         throw new Error(
-          `Update validation failed: ${errorMessages.join(", ")}`
+          `Update validation failed: ${JSON.stringify(errorMessages, null, 2)}`
         );
       }
       throw error;
     }
   }
 
+  // // Secure JSON serialization
+  // toJSON() {
+  //   const { password, ...safeUser } = this.#data;
+  //   return {
+  //     ...safeUser,
+  //     createdAt: this.createdAt.toISOString(),
+  //     lastUpdatedAt: this.lastUpdatedAt.toISOString(),
+  //   };
+  // }
+
   // Secure JSON serialization
   toJSON() {
-    const { password, ...safeUser } = this._data;
     return {
-      ...safeUser,
+      ...this.#data,
       createdAt: this.createdAt.toISOString(),
       lastUpdatedAt: this.lastUpdatedAt.toISOString(),
     };
   }
 
   // Method to get data ready for Prisma creation
+  // toData() {
+  //   const { createdAt, lastUpdatedAt, objectVersionId, ...prismaInput } =
+  //     this.#data;
+  //   return prismaInput;
+  // }
+
+  // Method to get data ready for Prisma creation
   toData() {
-    const { id, createdAt, lastUpdatedAt, objectVersionId, ...prismaInput } =
-      this._data;
+    const { createdAt, lastUpdatedAt, objectVersionId, ...prismaInput } = {
+      ...this.#data,
+      password: this.#password,
+    };
     return prismaInput;
   }
 
+  toNew() {
+    const { id, ...newInput } = this.toData;
+    return newInput;
+  }
+
   [util.inspect.custom]() {
+    // return this.#password;
     return this.toJSON();
   }
 }

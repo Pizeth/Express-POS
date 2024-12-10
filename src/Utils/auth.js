@@ -1,17 +1,15 @@
 import prisma from "../Configs/connect.js";
 import jwt from "jsonwebtoken";
-import repo from "../Repository/user.js";
-import { error } from "console";
 const secretKey = process.env.SECRET_KEY || 270400;
 const refreshTokenKey = process.env.REFRESH_TOKEN_KEY || 270400;
 
 export class Auth {
   // Utility for authentication token generation
-  static generateAccessToken(payload) {
+  static generateAccessToken(payload, req) {
     return jwt.sign(payload, secretKey, { expiresIn: "7d" });
   }
 
-  static generateRefreshToken(payload) {
+  static generateRefreshToken(payload, req) {
     return jwt.sign(payload, refreshTokenKey, { expiresIn: "7d" });
   }
 
@@ -31,18 +29,11 @@ export class Auth {
       // Check if token exists in database and is not expired
       const storedToken = await prisma.refreshToken.findUnique({
         where: { token: refreshToken },
+        include: { user: true },
       });
 
       if (!storedToken || storedToken.expiresAt < new Date()) {
         throw new Error("Invalid or expired refresh token!");
-      }
-
-      const user = await prisma.user.findUnique({
-        where: { id: storedToken.userId },
-      });
-
-      if (!user) {
-        throw new Error("invalid refresh token!");
       }
 
       // Generate new access token

@@ -32,10 +32,11 @@ export class UserRepository {
         where: { id: Number(id) },
         include: {
           profile: true,
-          refreshTokens: true,
+          // refreshTokens: true,
           auditTrail: true,
         },
       });
+      console.log(user);
       return user ? new User(user) : null;
     } catch (error) {
       console.error(`Error finding user with id ${id}:`, error);
@@ -75,6 +76,27 @@ export class UserRepository {
       return user ? new User(user) : null;
     } catch (error) {
       console.error(`Error finding user with email ${email}:`, error);
+      throw error;
+    }
+  }
+
+  // Find user by username or email
+  static async findUser(input) {
+    try {
+      const user = await prisma.user.findFirst({
+        where: {
+          OR: [
+            { email: { equals: input, mode: "insensitive" } },
+            { username: input },
+          ],
+        },
+        include: {
+          profile: true,
+        },
+      });
+      return user ? new User(user) : null;
+    } catch (error) {
+      console.error(`Error finding user ${input}:`, error);
       throw error;
     }
   }

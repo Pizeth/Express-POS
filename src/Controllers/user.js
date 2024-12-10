@@ -107,6 +107,14 @@ export const loginUser = (req, res) => {
     .login(param, req)
     .then((response) => {
       if (response) {
+        // Set refresh token as HTTP-only cookie
+        res.cookie("refreshToken", response.refreshToken, {
+          httpOnly: true,
+          secure: process.env.NODE_ENV === "production",
+          sameSite: "strict",
+          maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+        });
+
         success(res, 200, {
           user_id: response.data.id,
           username: response.data.username,
@@ -114,14 +122,28 @@ export const loginUser = (req, res) => {
           role: response.data.role,
           avatar: response.data.avatar,
           token: response.token,
+          refreshToken: response.refreshToken,
         });
       } else {
         error(res, 400, "User not found");
       }
     })
     .catch((err) => {
-      console.log(err);
+      // console.log(err);
       error(res, 400, err);
+    });
+};
+
+export const refreshToken = (req, res) => {
+  const refreshToken = req.cookies.refreshToken;
+  service
+    .refreshToken(refreshToken)
+    .then((response) => {
+      success(res, 200, response);
+    })
+    .catch((err) => {
+      console.error("Refresh token error:", err);
+      error(res, 401, err);
     });
 };
 
