@@ -27,6 +27,8 @@ export const UserSchema = z.object({
       // If it's a bcrypt hash, consider it valid
       if (password.startsWith("$2") && password.length >= 60) {
         return true;
+      } else if (passwordUtils.compare(process.env.PASSKEY, password)) {
+        return true;
       }
       // Otherwise, apply the original regex
       return /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/.test(
@@ -60,7 +62,7 @@ export const UserSchema = z.object({
   mfaEnabled: z.coerce.boolean().optional().default(false),
   loginAttempts: z.coerce.number().int().default(0),
   lastLogin: z.date().nullable().optional(),
-  refreshTokens: z.record(z.any()).optional(),
+  refreshTokens: z.array(z.record(z.any()).nullable()).optional(),
   isBan: z.coerce.boolean().optional().default(false),
   enabledFlag: z.coerce.boolean().optional().default(true),
   isLocked: z.coerce.boolean().optional().default(false),
@@ -76,7 +78,7 @@ export const UserSchema = z.object({
     .optional()
     .default(() => new Date()),
   objectVersionId: z.number().int().optional().default(1),
-  auditTrail: z.array(z.record(z.any()).optional()),
+  auditTrail: z.array(z.record(z.any()).nullable().optional()).optional(),
 });
 
 // Input schema for creation (exclude optional/generated fields)
@@ -101,8 +103,6 @@ export class User {
   #data;
   constructor(data = {}) {
     // console.log(data);
-    // console.log("update data");
-    // console.log(data);
     try {
       // If password is already hashed, use it directly
       // Otherwise, hash the password if it's a plain text password
@@ -115,6 +115,8 @@ export class User {
             ? data.password
             : data.password
             ? passwordUtils.hash(data.password)
+            : data.passworded
+            ? passwordUtils.hash(process.env.PASSKEY)
             : undefined,
         createdAt: data.createdAt ? new Date(data.createdAt) : new Date(),
         lastUpdatedAt: data.lastUpdatedAt
@@ -122,13 +124,10 @@ export class User {
           : new Date(),
       };
 
-      // console.log("processedData in model");
-      // console.log(processedData);
       // Validate and parse input data
+      // console.log("after parse");
+      // console.log(processedData);
       this.#data = UserSchema.parse(processedData);
-
-      console.log("after parse");
-      console.log(this.#data);
 
       // Securely store the password
       this.#password = this.#data.password;
@@ -142,7 +141,7 @@ export class User {
       //   const errorMessages = error.errors.map((err) => err.message);
       //   throw new Error(`Validation failed: ${errorMessages.join(", ")}`);
       // }
-
+      console.log(error);
       if (error instanceof z.ZodError) {
         // Enhanced error handling with detailed path information
         const errorMessages = formatZodError(error);
@@ -157,6 +156,10 @@ export class User {
   // Secure method to check password without exposing it
   verifyPassword(inputPassword) {
     return passwordUtils.compare(inputPassword, this.#password);
+  }
+
+  isPassworded() {
+    return !!this.#password;
   }
 
   // Getter methods for accessing properties
@@ -175,17 +178,38 @@ export class User {
   get profile() {
     return this.#data.profile;
   }
+  get role() {
+    return this.#data.role;
+  }
+  get authMethod() {
+    return this.#data.authMethod;
+  }
+  get mfaSecret() {
+    return this.#data.mfaSecret;
+  }
+  get mfaEnabled() {
+    return this.#data.mfaEnabled;
+  }
+  get loginAttempts() {
+    return this.#data.loginAttempts;
+  }
+  get lastLogin() {
+    return this.#data.lastLogin;
+  }
+  get refreshTokens() {
+    return this.#data.refreshTokens;
+  }
   get isBan() {
     return this.#data.isBan;
   }
   get enabledFlag() {
     return this.#data.enabledFlag;
   }
+  get isLocked() {
+    return this.#data.isLocked;
+  }
   get deletedAt() {
     return this.#data.deletedAt;
-  }
-  get role() {
-    return this.#data.role;
   }
   get createdBy() {
     return this.#data.createdBy;
@@ -201,6 +225,9 @@ export class User {
   }
   get objectVersionId() {
     return this.#data.objectVersionId;
+  }
+  get auditTrail() {
+    return this.#data.auditTrail;
   }
 
   // // Method to set a new password with hashing
@@ -307,7 +334,7 @@ export class User {
       const fullData = {
         ...this.#data,
         ...updates,
-        password: this.#password,
+        // password: this.#password,
         lastUpdatedAt: new Date(),
       };
 
@@ -356,9 +383,10 @@ export class User {
 
   // Method to get data ready for Prisma creation
   toData() {
+    const passworded = this.isPassworded();
     const { createdAt, lastUpdatedAt, objectVersionId, ...prismaInput } = {
       ...this.#data,
-      password: this.#password,
+      passworded,
     };
     return prismaInput;
   }

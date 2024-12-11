@@ -35,6 +35,7 @@
 import { config } from "dotenv";
 import express from "express";
 import logger from "morgan";
+import cookieParser from "cookie-parser";
 // import { json, urlencoded } from "body-parser";
 // import bodyParser, { json } from "body-parser";
 import cors from "cors";
@@ -60,7 +61,7 @@ server.listen(port, () => {
 
 // Middleware
 server.use(logger("dev"));
-
+server.use(cookieParser());
 server.use(express.json());
 // server.use(bodyParser.json());
 // server.use(bodyParser.urlencoded({ extended: false }));

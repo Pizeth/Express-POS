@@ -19,6 +19,7 @@ const upload = multer({ storage: multer.memoryStorage() });
 
 Router.get("/username/:username", controller.getUsername);
 Router.get("/email/:email", controller.getEmail);
+Router.get("/refreshToken", controller.getRefreshToken);
 Router.get("/", controller.getUser);
 Router.get("/:id", controller.getUserId);
 Router.post("/register", upload.single("file"), controller.registerUser);

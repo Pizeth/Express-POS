@@ -36,7 +36,6 @@ export class UserRepository {
           auditTrail: true,
         },
       });
-      console.log(user);
       return user ? new User(user) : null;
     } catch (error) {
       console.error(`Error finding user with id ${id}:`, error);
@@ -92,8 +91,10 @@ export class UserRepository {
         },
         include: {
           profile: true,
+          // auditTrail: true,
         },
       });
+      // console.log(user);
       return user ? new User(user) : null;
     } catch (error) {
       console.error(`Error finding user ${input}:`, error);
@@ -160,34 +161,51 @@ export class UserRepository {
 
   // Add method for conditional updates
   static async updateUserStatus(id, updates) {
-    return prisma.user.update({
-      where: { id: Number(id) },
-      data: {
-        ...updates,
-        lastUpdateDate: new Date(),
-      },
-    });
+    try {
+      return prisma.user.update({
+        where: { id: Number(id) },
+        data: {
+          ...updates,
+          lastUpdateDate: new Date(),
+        },
+      });
+    } catch (error) {
+      console.error("Error update user locking status:", error);
+      throw error;
+    }
   }
 
   // Implement login attempt tracking
-  static async incrementLoginAttempts(id) {
-    return prisma.user.update({
-      where: { id: id },
-      data: {
-        loginAttempts: { increment: 1 },
-        lastLoginAttempt: new Date(),
-      },
-    });
+  static async incrementLoginAttempts(user) {
+    try {
+      return prisma.user.update({
+        where: { id: Number(user.id) },
+        data: {
+          loginAttempts: { increment: 1 },
+          lastLogin: new Date(),
+          isLocked: user.loginAttempts >= 5, // Lock after 5 failed attempts
+        },
+      });
+    } catch (error) {
+      console.error("Error increment user login attempts:", error);
+      throw error;
+    }
   }
 
   static async resetLoginAttempts(id) {
-    return prisma.user.update({
-      where: { id: id },
-      data: {
-        loginAttempts: 0,
-        lastLogin: null,
-      },
-    });
+    try {
+      await prisma.user.update({
+        where: { id: id },
+        data: {
+          loginAttempts: 0,
+          lastLogin: new Date(),
+          isLocked: false,
+        },
+      });
+    } catch (error) {
+      console.error("Error resetting user login attempts:", error);
+      throw error;
+    }
   }
 
   // Soft delete implementation

@@ -1,6 +1,6 @@
 // import model from "../Models/user.js";
 import service from "../Services/user.js";
-import repo from "../Repository/user.js";
+import repo from "../Repositories/user.js";
 import { success, error } from "../Utils/form.js";
 
 export const getUser = (req, res) => {
@@ -134,10 +134,12 @@ export const loginUser = (req, res) => {
     });
 };
 
-export const refreshToken = (req, res) => {
-  const refreshToken = req.cookies.refreshToken;
+export const getRefreshToken = (req, res) => {
+  // console.log(req);
+  // const refreshToken = req.cookies.refreshToken;
+  const refreshToken = req.headers["refresh-token"];
   service
-    .refreshToken(refreshToken)
+    .refreshToken(refreshToken, req)
     .then((response) => {
       success(res, 200, response);
     })
@@ -179,5 +181,6 @@ export default {
   registerUser,
   putUser,
   loginUser,
+  getRefreshToken,
   deleteUser,
 };

@@ -1,10 +1,10 @@
 // services/userService.js
 import prisma from "../Configs/connect.js";
 import User from "../Models/user.js";
-import UserRepo from "../Repository/user.js";
+import UserRepo from "../Repositories/user.js";
 import upload from "../Services/fileUpload.js";
 import { logError } from "../Utils/form.js";
-import passwordUtils from "../Utils/passwordUtils.js";
+import loginRepo from "../Repositories/loginAttempt.js";
 import tokenManager from "../Utils/tokenManager.js";
 
 export class UserService {
@@ -93,39 +93,101 @@ export class UserService {
 
       // Check if user existed
       if (!user) {
+        await loginRepo.recordLoginAttempt(null, username, req, "FAILED");
         throw new Error("User not found!");
       }
 
-      // Check if user is locked or banned
-      if (user.isLocked || user.isBan) {
-        throw new Error("Account is locked or banned");
+      // // Check if user is locked or banned
+      // if (user.isLocked || user.isBan || !user.enabledFlag) {
+      //   throw new Error("Account is locked or banned");
+      // }
+
+      // Check if user is banned or deleted
+      if (user.isBan || !user.enabledFlag) {
+        await loginRepo.recordLoginAttempt(
+          user.id,
+          user.username,
+          req,
+          "FAILED"
+        );
+        throw new Error("Account is banned or inactive!");
       }
 
+      // Check if user is locked
+      if (user.isLocked) {
+        await loginRepo.recordLoginAttempt(
+          user.id,
+          user.username,
+          req,
+          "FAILED"
+        );
+        throw new Error("Account locked due to multiple failed attempts!");
+      } else if (user.loginAttempts >= 5) {
+        await UserRepo.updateUserStatus(user.id, { isLocked: true });
+        await loginRepo.recordLoginAttempt(
+          user.id,
+          user.username,
+          req,
+          "FAILED"
+        );
+        throw new Error("Too many failed attempts, account is locked!");
+      }
+
+      // Check login attempts and lock account if needed
+      // if (user.loginAttempts >= 5) {
+      //   await UserRepo.updateUserStatus(user.id, {
+      //     isLocked: true,
+      //   });
+      //   throw new Error("Account locked due to multiple failed attempts");
+      // }
+
       // Verify password
-      // const isPasswordValid = passwordUtils.compare(password, user.password);
       const isPasswordValid = user.verifyPassword(password);
 
       if (!isPasswordValid) {
         // Increment login attempts
-        await prisma.user.update({
-          where: { id: user.id },
-          data: {
-            loginAttempts: { increment: 1 },
-            isLocked: user.loginAttempts >= 5, // Lock after 5 failed attempts
-          },
-        });
-        throw new Error("Invalid credentials!");
+        await UserRepo.incrementLoginAttempts(user.toData());
+        await loginRepo.recordLoginAttempt(
+          user.id,
+          user.username,
+          req,
+          "FAILED"
+        );
+        throw new Error("Invalid credentials");
       }
 
       // Reset login attempts on successful login
-      await prisma.user.update({
-        where: { id: user.id },
-        data: {
-          loginAttempts: 0,
-          lastLogin: new Date(),
-          isLocked: false,
-        },
-      });
+      await UserRepo.resetLoginAttempts(user.id);
+
+      // Record successful login attempt and update last login
+      await loginRepo.recordLoginAttempt(
+        user.id,
+        user.username,
+        req,
+        "SUCCESS"
+      );
+
+      // if (!isPasswordValid) {
+      //   // Increment login attempts
+      //   await prisma.user.update({
+      //     where: { id: user.id },
+      //     data: {
+      //       loginAttempts: { increment: 1 },
+      //       isLocked: user.loginAttempts >= 5, // Lock after 5 failed attempts
+      //     },
+      //   });
+      //   throw new Error("Invalid credentials!");
+      // }
+
+      // Reset login attempts on successful login
+      // await prisma.user.update({
+      //   where: { id: user.id },
+      //   data: {
+      //     loginAttempts: 0,
+      //     lastLogin: new Date(),
+      //     isLocked: false,
+      //   },
+      // });
 
       const payload = {
         id: user.id,
@@ -136,22 +198,21 @@ export class UserService {
       };
 
       // Generate authentication token
-      const token = tokenManager.generateAccessToken(payload, req);
-      const refreshToken = tokenManager.generateRefreshToken(payload, req);
+      const token = tokenManager.generateAccessToken(payload);
+      const refreshToken = await tokenManager.generateRefreshToken(payload);
 
       // Save refresh token to database
-      await prisma.refreshToken.create({
-        data: {
-          token: refreshToken,
-          userId: user.id,
-          expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days
-        },
-      });
-
+      // await prisma.refreshToken.create({
+      //   data: {
+      //     token: refreshToken,
+      //     userId: user.id,
+      //     expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days
+      //   },
+      // });
       return {
         data: new User(user.toData()),
         token: token,
-        refreshToken: refreshToken,
+        refreshToken: refreshToken.token,
       };
     } catch (error) {
       logError("User login error:", error, req);
@@ -159,25 +220,86 @@ export class UserService {
     }
   }
 
+  // Audit Trail Methods
+  static async createAuditTrail(
+    userId,
+    action,
+    description,
+    ipAddress,
+    category = null
+  ) {
+    return prisma.auditTrail.create({
+      data: {
+        userId,
+        action,
+        description,
+        ipAddress,
+        category: category ? { connect: { id: category } } : undefined,
+      },
+    });
+  }
+
+  // Password Reset Workflow
+  static async initiatePasswordReset(email) {
+    const user = await UserRepository.findByEmail(email);
+    if (!user) throw new Error("User not found");
+
+    // Generate a unique password reset token
+    const resetToken = uuidv4();
+    const resetTokenExpiry = new Date(Date.now() + 3600000); // 1 hour from now
+
+    // Store reset token
+    await prisma.user.update({
+      where: { id: user.id },
+      data: {
+        passwordResetToken: resetToken,
+        passwordResetExpiry: resetTokenExpiry,
+      },
+    });
+
+    // TODO: Send email with reset link
+    // This would typically involve an email service
+    return { resetToken };
+  }
+
+  static async completePasswordReset(resetToken, newPassword) {
+    const user = await prisma.user.findFirst({
+      where: {
+        passwordResetToken: resetToken,
+        passwordResetExpiry: { gt: new Date() },
+      },
+    });
+
+    if (!user) throw new Error("Invalid or expired reset token");
+
+    // Update user password and clear reset token
+    const updatedUser = await prisma.user.update({
+      where: { id: user.id },
+      data: {
+        password: bcrypt.hashSync(newPassword, 12),
+        passwordResetToken: null,
+        passwordResetExpiry: null,
+      },
+    });
+
+    return new User(updatedUser);
+  }
+
   // Refresh Token
   static async refreshToken(refreshToken, req) {
-    if (!refreshToken) {
-      throw new Error("Refresh token is required");
-    }
-
     try {
+      if (!refreshToken) {
+        throw new Error("Refresh token is required");
+      }
       // Verify refresh token
-      const decoded = this.verifyToken(refreshToken);
+      const decoded = tokenManager.verifyToken(refreshToken);
 
       if (!decoded) {
         throw new Error("Invalid refresh token");
       }
 
       // Check if refresh token exists in database
-      const storedToken = await prisma.refreshToken.findUnique({
-        where: { token: refreshToken },
-        include: { user: true },
-      });
+      const storedToken = await tokenManager.getToken(refreshToken);
 
       if (!storedToken || storedToken.expiresAt < new Date()) {
         throw new Error("Invalid or expired refresh token!");
@@ -191,14 +313,11 @@ export class UserService {
         ip: req.ip,
       };
       // Generate new access token
-      const accessToken = this.generateAccessToken(payload);
-
-      return accessToken;
+      return tokenManager.generateAccessToken(payload);
     } catch (error) {
       // Remove invalid refresh token
-      await prisma.refreshToken.deleteMany({
-        where: { token: refreshToken },
-      });
+      await tokenManager.remove(refreshToken);
+      logError("User refresh token error:", error, req);
       throw new Error("Invalid refresh token");
     }
   }
