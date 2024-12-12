@@ -1,11 +1,12 @@
 // services/userService.js
 import prisma from "../Configs/connect.js";
-import User from "../Models/user.js";
+import model from "../Models/user.js";
 import UserRepo from "../Repositories/user.js";
 import upload from "../Services/fileUpload.js";
 import { logError } from "../Utils/form.js";
 import loginRepo from "../Repositories/loginAttempt.js";
 import tokenManager from "../Utils/tokenManager.js";
+import passwordUtils from "../Utils/passwordUtils.js";
 
 export class UserService {
   // Register a new user
@@ -13,7 +14,7 @@ export class UserService {
     let fileName = "";
     try {
       // Validate user data before processing
-      const user = new User(data);
+      const user = new model.User(data);
       const validationResult = user.validate();
 
       if (!validationResult.isValid) {
@@ -38,7 +39,7 @@ export class UserService {
           }
 
           const avatar = await upload.uploadFile(req, res, user.username);
-          if (avatar) {
+          if (avatar && avatar.status === 200) {
             fileName = avatar.fileName;
             user.update({
               avatar: avatar.url,
@@ -49,6 +50,7 @@ export class UserService {
           const newUser = await tx.user.create({
             data: {
               ...user.toNew(),
+              password: passwordUtils.hash(data.password),
               // Add audit trail information
               auditTrail: {
                 create: {
@@ -61,7 +63,7 @@ export class UserService {
           });
 
           console.log(await newUser);
-          return new User(newUser);
+          return new model.User(newUser);
         },
         {
           maxWait: 5000, // default: 2000
@@ -86,60 +88,33 @@ export class UserService {
   // Login user
   static async login(credentials, req) {
     try {
-      const { username, password } = credentials;
+      const { username, password } = model.LoginSchema.parse(credentials);
 
       // Find user by username or email
       const user = await UserRepo.findUser(username);
 
       // Check if user existed
       if (!user) {
-        await loginRepo.recordLoginAttempt(null, username, req, "FAILED");
+        await loginRepo.recordLoginAttempt(username, req, "FAILED");
         throw new Error("User not found!");
       }
 
-      // // Check if user is locked or banned
-      // if (user.isLocked || user.isBan || !user.enabledFlag) {
-      //   throw new Error("Account is locked or banned");
-      // }
-
       // Check if user is banned or deleted
       if (user.isBan || !user.enabledFlag) {
-        await loginRepo.recordLoginAttempt(
-          user.id,
-          user.username,
-          req,
-          "FAILED"
-        );
+        await loginRepo.recordLoginAttempt(user, req, "FAILED");
         throw new Error("Account is banned or inactive!");
       }
 
       // Check if user is locked
       if (user.isLocked) {
-        await loginRepo.recordLoginAttempt(
-          user.id,
-          user.username,
-          req,
-          "FAILED"
-        );
+        await loginRepo.recordLoginAttempt(user, req, "FAILED");
         throw new Error("Account locked due to multiple failed attempts!");
       } else if (user.loginAttempts >= 5) {
+        // If the user has 5 attempts or more then lock this user
         await UserRepo.updateUserStatus(user.id, { isLocked: true });
-        await loginRepo.recordLoginAttempt(
-          user.id,
-          user.username,
-          req,
-          "FAILED"
-        );
+        await loginRepo.recordLoginAttempt(user, req, "FAILED");
         throw new Error("Too many failed attempts, account is locked!");
       }
-
-      // Check login attempts and lock account if needed
-      // if (user.loginAttempts >= 5) {
-      //   await UserRepo.updateUserStatus(user.id, {
-      //     isLocked: true,
-      //   });
-      //   throw new Error("Account locked due to multiple failed attempts");
-      // }
 
       // Verify password
       const isPasswordValid = user.verifyPassword(password);
@@ -147,12 +122,7 @@ export class UserService {
       if (!isPasswordValid) {
         // Increment login attempts
         await UserRepo.incrementLoginAttempts(user.toData());
-        await loginRepo.recordLoginAttempt(
-          user.id,
-          user.username,
-          req,
-          "FAILED"
-        );
+        await loginRepo.recordLoginAttempt(user, req, "FAILED");
         throw new Error("Invalid credentials");
       }
 
@@ -160,57 +130,19 @@ export class UserService {
       await UserRepo.resetLoginAttempts(user.id);
 
       // Record successful login attempt and update last login
-      await loginRepo.recordLoginAttempt(
-        user.id,
-        user.username,
-        req,
-        "SUCCESS"
-      );
+      await loginRepo.recordLoginAttempt(user, req, "SUCCESS");
 
-      // if (!isPasswordValid) {
-      //   // Increment login attempts
-      //   await prisma.user.update({
-      //     where: { id: user.id },
-      //     data: {
-      //       loginAttempts: { increment: 1 },
-      //       isLocked: user.loginAttempts >= 5, // Lock after 5 failed attempts
-      //     },
-      //   });
-      //   throw new Error("Invalid credentials!");
-      // }
-
-      // Reset login attempts on successful login
-      // await prisma.user.update({
-      //   where: { id: user.id },
-      //   data: {
-      //     loginAttempts: 0,
-      //     lastLogin: new Date(),
-      //     isLocked: false,
-      //   },
-      // });
-
-      const payload = {
-        id: user.id,
-        username: user.username,
-        email: user.email,
-        role: user.role,
-        ip: req.ip,
-      };
+      // Generate payload to use for create token
+      const payload = tokenManager.generatePayload(user, req);
 
       // Generate authentication token
       const token = tokenManager.generateAccessToken(payload);
-      const refreshToken = await tokenManager.generateRefreshToken(payload);
 
       // Save refresh token to database
-      // await prisma.refreshToken.create({
-      //   data: {
-      //     token: refreshToken,
-      //     userId: user.id,
-      //     expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days
-      //   },
-      // });
+      const refreshToken = await tokenManager.generateRefreshToken(payload);
+
       return {
-        data: new User(user.toData()),
+        data: new model.User(user.toData()),
         token: token,
         refreshToken: refreshToken.token,
       };
@@ -282,7 +214,7 @@ export class UserService {
       },
     });
 
-    return new User(updatedUser);
+    return new model.User(updatedUser);
   }
 
   // Refresh Token
@@ -305,13 +237,8 @@ export class UserService {
         throw new Error("Invalid or expired refresh token!");
       }
 
-      const payload = {
-        id: storedToken.user.id,
-        username: storedToken.user.username,
-        email: storedToken.user.email,
-        role: storedToken.user.role,
-        ip: req.ip,
-      };
+      // Generate payload to use for create token
+      const payload = tokenManager.generatePayload(storedToken.user, req);
       // Generate new access token
       return tokenManager.generateAccessToken(payload);
     } catch (error) {
@@ -323,56 +250,34 @@ export class UserService {
   }
 
   // Update user
-  static async updateUser(data, req, res) {
+  static async updateUser(data, req) {
     let fileName = "";
     try {
-      // Validate user data before processing
-      const user = new User(data);
-      const validationResult = user.validate();
-
-      if (!validationResult.isValid) {
-        throw new Error(validationResult.errors.join(", "));
-      }
+      const user = model.UpdateSchema.parse(data);
 
       // Transaction for atomic operations
       return await prisma.$transaction(
         async (tx) => {
           // Check unique constraints within transaction
-          const [existingUser, existingUsername, existingEmail] =
-            await Promise.all([
-              UserRepo.findById(data.id),
-              UserRepo.findByUsername(data.username),
-              UserRepo.findByEmail(data.email),
-            ]);
+          const existingUser = await UserRepo.findById(user.id);
 
+          // Check if the user existed
           if (!existingUser) {
             throw new Error("User not found");
           }
 
-          if (existingUsername) {
-            throw new Error("Username already exists");
-          }
-
-          if (existingEmail) {
-            throw new Error("Email already exists");
-          }
-
-          const avatar = await upload.uploadFile(req, res, user.username);
-          if (avatar) {
-            fileName = avatar.fileName;
-            user.update({
-              avatar: avatar.url,
-            });
-          } else {
-            uuser.update({
-              avatar: existingUser.avatar,
-            });
-          }
+          const avatar = await upload.uploadFile(req, existingUser.username);
+          fileName = avatar && avatar.status === 400 ? "" : avatar.fileName;
 
           // Create user with more detailed error tracking
           const newUser = await tx.user.update({
+            where: { id: user.id },
             data: {
-              ...user.toData(),
+              ...user,
+              avatar:
+                avatar && avatar.status === 200
+                  ? avatar.url
+                  : existingUser.avatar,
               // Add audit trail information
               auditTrail: {
                 create: {
@@ -385,53 +290,13 @@ export class UserService {
           });
 
           console.log(await newUser);
-          return new User(newUser);
+          return new model.User(newUser);
         },
         {
           maxWait: 5000, // default: 2000
           timeout: 10000, // default: 5000
         }
       );
-
-      // // Check if user exists
-      // const existingUser = await UserRepository.findById(id);
-      // if (!existingUser) {
-      //   throw new Error("User not found");
-      // }
-
-      // // Handle avatar upload
-      // let avatarUrl = avatar;
-      // try {
-      //   const uploadResponse = await upload.uploadFile(req, res, username);
-      //   if (uploadResponse.status === 200) {
-      //     avatarUrl = uploadResponse.url;
-      //     fileName = uploadResponse.fileName;
-      //   }
-      // } catch (uploadError) {
-      //   console.warn("Avatar upload failed:", uploadError);
-      // }
-
-      // // Hash password if provided
-      // const hashedPassword = password
-      //   ? bcrypt.hashSync(password, salt)
-      //   : undefined;
-
-      // // Update user
-      // const updatedUser = await prisma.user.update({
-      //   where: { id: Number(id) },
-      //   data: {
-      //     username,
-      //     email,
-      //     ...(hashedPassword && { password: hashedPassword }),
-      //     avatar: avatarUrl,
-      //     role,
-      //     createdBy: Number(createdBy),
-      //     lastUpdatedBy: Number(lastUpdatedBy),
-      //     objectVersionId: { increment: 1 },
-      //   },
-      // });
-
-      // return new User(updatedUser);
     } catch (error) {
       if (fileName) {
         try {
@@ -442,7 +307,7 @@ export class UserService {
         }
       }
       // Centralized error logging
-      logError("User Registration", error, req);
+      logError("User Update", error, req);
       throw error;
     }
   }
@@ -454,7 +319,7 @@ export class UserService {
         where: { id: Number(id) },
       });
 
-      return new User(deletedUser);
+      return new model.User(deletedUser);
     } catch (error) {
       console.error(`Error deleting user ${id}:`, error);
       throw error;
@@ -523,3 +388,43 @@ export default UserService;
 //     throw error;
 //   }
 // }
+
+// // Check if user exists
+// const existingUser = await UserRepository.findById(id);
+// if (!existingUser) {
+//   throw new Error("User not found");
+// }
+
+// // Handle avatar upload
+// let avatarUrl = avatar;
+// try {
+//   const uploadResponse = await upload.uploadFile(req, res, username);
+//   if (uploadResponse.status === 200) {
+//     avatarUrl = uploadResponse.url;
+//     fileName = uploadResponse.fileName;
+//   }
+// } catch (uploadError) {
+//   console.warn("Avatar upload failed:", uploadError);
+// }
+
+// // Hash password if provided
+// const hashedPassword = password
+//   ? bcrypt.hashSync(password, salt)
+//   : undefined;
+
+// // Update user
+// const updatedUser = await prisma.user.update({
+//   where: { id: Number(id) },
+//   data: {
+//     username,
+//     email,
+//     ...(hashedPassword && { password: hashedPassword }),
+//     avatar: avatarUrl,
+//     role,
+//     createdBy: Number(createdBy),
+//     lastUpdatedBy: Number(lastUpdatedBy),
+//     objectVersionId: { increment: 1 },
+//   },
+// });
+
+// return new User(updatedUser);

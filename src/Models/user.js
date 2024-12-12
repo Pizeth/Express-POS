@@ -90,7 +90,7 @@ export const CreateUserSchema = UserSchema.omit({
 });
 
 // Input schema for update (make all fields optional)
-export const UpdateUserSchema = UserSchema.partial();
+export const UpdateSchema = UserSchema.partial();
 
 export const LoginSchema = UserSchema.pick({
   username: true,
@@ -141,7 +141,7 @@ export class User {
       //   const errorMessages = error.errors.map((err) => err.message);
       //   throw new Error(`Validation failed: ${errorMessages.join(", ")}`);
       // }
-      console.log(error);
+
       if (error instanceof z.ZodError) {
         // Enhanced error handling with detailed path information
         const errorMessages = formatZodError(error);
@@ -334,9 +334,11 @@ export class User {
       const fullData = {
         ...this.#data,
         ...updates,
-        // password: this.#password,
+        password: this.#password,
         lastUpdatedAt: new Date(),
       };
+
+      console.log(fullData);
 
       this.#data = UserSchema.parse(fullData);
 
@@ -392,7 +394,7 @@ export class User {
   }
 
   toNew() {
-    const { id, ...newInput } = this.toData;
+    const { id, passworded, ...newInput } = this.toData();
     return newInput;
   }
 
@@ -403,7 +405,7 @@ export class User {
 }
 
 // export default User;
-export default User;
+export default { User, UpdateSchema, LoginSchema };
 
 // export class User {
 //   constructor(data = {}) {

@@ -5,6 +5,15 @@ const refreshTokenKey = process.env.REFRESH_TOKEN_KEY || 200794;
 
 // Utility for authentication token generation
 export class TokenManager {
+  static generatePayload(user, req) {
+    return {
+      id: user.id,
+      username: user.username,
+      email: user.email,
+      role: user.role,
+      ip: req.ip,
+    };
+  }
   // Generate tokens
   static generateAccessToken(payload) {
     return jwt.sign(payload, secretKey, { expiresIn: "900s" });

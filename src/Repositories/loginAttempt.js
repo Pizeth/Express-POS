@@ -2,16 +2,16 @@
 import prisma from "../Configs/connect.js";
 export class LoginAttemptRepository {
   // Login Attempt Tracking
-  static async recordLoginAttempt(id, username, req, status) {
+  static async recordLoginAttempt(user, req, status) {
     const ipAddress = req.ip;
     const userAgent = req.headers["user-agent"];
-    const il = !id ? null : id;
-    console.log(il);
+    // const il = !id ? null : id;
+    // console.log(il);
     try {
       return prisma.loginAttempt.create({
         data: {
-          userId: !id ? null : id,
-          username,
+          userId: !user.id ? null : user.id,
+          username: !user.username ? user : user.username,
           ipAddress,
           userAgent,
           status,

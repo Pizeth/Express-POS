@@ -7,7 +7,7 @@ import { dirname } from "path";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
-export const uploadFile = async (req, res, fileName) => {
+export const uploadFile = async (req, fileName) => {
   try {
     if (!req.file) {
       const UploadError = {
