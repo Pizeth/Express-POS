@@ -11,6 +11,10 @@ export class PasswordUtils {
     return bcrypt.compareSync(password, userPassword);
   }
 
+  static check(password, repassword) {
+    return password === repassword;
+  }
+
   // Salt generating method
   static getSalt(salt) {
     return bcrypt.genSaltSync(!salt ? Number(process.env.SALT) : salt);

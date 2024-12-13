@@ -1,6 +1,6 @@
 // repositories/userRepository.js
 import prisma from "../Configs/connect.js";
-import model from "../Models/user.js";
+import User from "../Models/user.js";
 import pagination from "../Utils/function.js";
 
 export class UserRepository {
@@ -17,7 +17,7 @@ export class UserRepository {
           refreshTokens: true,
         },
       });
-      result.data.map((data) => new model.User(data));
+      result.data.map((data) => new User(data));
       return result;
     } catch (error) {
       console.error("Error fetching paginated users:", error);
@@ -32,11 +32,9 @@ export class UserRepository {
         where: { id: Number(id) },
         include: {
           profile: true,
-          // refreshTokens: true,
-          auditTrail: true,
         },
       });
-      return user ? new model.User(user) : null;
+      return user ? new User(user) : null;
     } catch (error) {
       console.error(`Error finding user with id ${id}:`, error);
       throw error;
@@ -54,7 +52,7 @@ export class UserRepository {
           },
         },
       });
-      return user ? new model.User(user) : null;
+      return user ? new User(user) : null;
     } catch (error) {
       console.error(`Error finding user with username ${username}:`, error);
       throw error;
@@ -72,7 +70,7 @@ export class UserRepository {
           },
         },
       });
-      return user ? new model.User(user) : null;
+      return user ? new User(user) : null;
     } catch (error) {
       console.error(`Error finding user with email ${email}:`, error);
       throw error;
@@ -95,7 +93,7 @@ export class UserRepository {
         },
       });
       // console.log(user);
-      return user ? new model.User(user) : null;
+      return user ? new User(user) : null;
     } catch (error) {
       console.error(`Error finding user ${input}:`, error);
       throw error;
@@ -153,7 +151,7 @@ export class UserRepository {
     return prisma.$transaction(
       users.map((user) =>
         prisma.user.create({
-          data: new model.User(user).toJSON(),
+          data: new User(user).toJSON(),
         })
       )
     );
@@ -183,7 +181,7 @@ export class UserRepository {
         data: {
           loginAttempts: { increment: 1 },
           lastLogin: new Date(),
-          isLocked: user.loginAttempts >= 5, // Lock after 5 failed attempts
+          isLocked: user.loginAttempts >= process.env.LOCKED, // Lock after 5 failed attempts
         },
       });
     } catch (error) {

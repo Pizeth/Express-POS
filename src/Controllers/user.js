@@ -2,6 +2,7 @@
 import service from "../Services/user.js";
 import repo from "../Repositories/user.js";
 import { success, error } from "../Utils/form.js";
+import { response } from "express";
 
 export const getUser = (req, res) => {
   // const page = fPagination(req);
@@ -98,6 +99,19 @@ export const putUser = (req, res) => {
     });
 };
 
+export const changePassword = (req, res) => {
+  const param = req.body;
+  service
+    .updatePassword(param, req)
+    .then((response) => {
+      success(res, 200, "Password changed successfully");
+    })
+    .catch((err) => {
+      console.log(err);
+      error(res, 400, err);
+    });
+};
+
 export const loginUser = (req, res) => {
   const param = req.body;
   if (param.username == null) return error(res, 400, "Username can't be empty");
@@ -129,7 +143,7 @@ export const loginUser = (req, res) => {
       }
     })
     .catch((err) => {
-      // console.log(err);
+      console.log(err);
       error(res, 400, err);
     });
 };
@@ -181,6 +195,7 @@ export default {
   registerUser,
   putUser,
   loginUser,
+  changePassword,
   getRefreshToken,
   deleteUser,
 };

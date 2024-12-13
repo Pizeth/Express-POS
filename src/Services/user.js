@@ -1,6 +1,6 @@
 // services/userService.js
 import prisma from "../Configs/connect.js";
-import model from "../Models/user.js";
+import User from "../Models/user.js";
 import UserRepo from "../Repositories/user.js";
 import upload from "../Services/fileUpload.js";
 import { logError } from "../Utils/form.js";
@@ -14,7 +14,7 @@ export class UserService {
     let fileName = "";
     try {
       // Validate user data before processing
-      const user = new model.User(data);
+      const user = new User(data);
       const validationResult = user.validate();
 
       if (!validationResult.isValid) {
@@ -63,7 +63,7 @@ export class UserService {
           });
 
           console.log(await newUser);
-          return new model.User(newUser);
+          return new User(newUser);
         },
         {
           maxWait: 5000, // default: 2000
@@ -88,7 +88,7 @@ export class UserService {
   // Login user
   static async login(credentials, req) {
     try {
-      const { username, password } = model.LoginSchema.parse(credentials);
+      const { username, password } = credentials;
 
       // Find user by username or email
       const user = await UserRepo.findUser(username);
@@ -109,7 +109,7 @@ export class UserService {
       if (user.isLocked) {
         await loginRepo.recordLoginAttempt(user, req, "FAILED");
         throw new Error("Account locked due to multiple failed attempts!");
-      } else if (user.loginAttempts >= 5) {
+      } else if (user.loginAttempts >= process.env.LOCKED) {
         // If the user has 5 attempts or more then lock this user
         await UserRepo.updateUserStatus(user.id, { isLocked: true });
         await loginRepo.recordLoginAttempt(user, req, "FAILED");
@@ -142,7 +142,7 @@ export class UserService {
       const refreshToken = await tokenManager.generateRefreshToken(payload);
 
       return {
-        data: new model.User(user.toData()),
+        data: new User(user.toData()),
         token: token,
         refreshToken: refreshToken.token,
       };
@@ -214,7 +214,7 @@ export class UserService {
       },
     });
 
-    return new model.User(updatedUser);
+    return new User(updatedUser);
   }
 
   // Refresh Token
@@ -253,7 +253,7 @@ export class UserService {
   static async updateUser(data, req) {
     let fileName = "";
     try {
-      const user = model.UpdateSchema.parse(data);
+      const user = new User(data);
 
       // Transaction for atomic operations
       return await prisma.$transaction(
@@ -278,6 +278,7 @@ export class UserService {
                 avatar && avatar.status === 200
                   ? avatar.url
                   : existingUser.avatar,
+              objectVersionId: { increment: 1 },
               // Add audit trail information
               auditTrail: {
                 create: {
@@ -290,7 +291,7 @@ export class UserService {
           });
 
           console.log(await newUser);
-          return new model.User(newUser);
+          return new User(newUser);
         },
         {
           maxWait: 5000, // default: 2000
@@ -312,6 +313,66 @@ export class UserService {
     }
   }
 
+  static async updatePassword(data, req) {
+    try {
+      const user = new User(data);
+      // if (!user.verifyRepassword()) {
+      //   throw new Error("New Password and Re Password does not match!");
+      // }
+
+      // Transaction for atomic operations
+      return await prisma.$transaction(
+        async (tx) => {
+          // Check unique constraints within transaction
+          const existingUser = await UserRepo.findById(user.id);
+
+          // Check if the user existed
+          if (!existingUser) {
+            throw new Error("User not found");
+          }
+
+          // Verify the user password
+          if (!existingUser.verifyPassword(data.password)) {
+            throw new Error("Password does not match!");
+          }
+
+          // Verify the user new password
+          if (existingUser.verifyPassword(user.newPassword)) {
+            throw new Error("New Password cannot be the same as old Password!");
+          }
+
+          // Create user with more detailed error tracking
+          const newUser = await tx.user.update({
+            where: { id: user.id },
+            data: {
+              ...user,
+              password: user.newPassword,
+              // Add audit trail information
+              auditTrail: {
+                create: {
+                  action: "UPDATE",
+                  timestamp: new Date(),
+                  ipAddress: req.ip,
+                },
+              },
+            },
+          });
+
+          console.log(await newUser);
+          return new User(newUser);
+        },
+        {
+          maxWait: 5000, // default: 2000
+          timeout: 10000, // default: 5000
+        }
+      );
+    } catch (error) {
+      // Centralized error logging
+      logError("User Update", error, req);
+      throw error;
+    }
+  }
+
   // Delete user
   static async deleteUser(id) {
     try {
@@ -319,7 +380,7 @@ export class UserService {
         where: { id: Number(id) },
       });
 
-      return new model.User(deletedUser);
+      return new User(deletedUser);
     } catch (error) {
       console.error(`Error deleting user ${id}:`, error);
       throw error;

@@ -24,6 +24,7 @@ Router.get("/", controller.getUser);
 Router.get("/:id", controller.getUserId);
 Router.post("/register", upload.single("file"), controller.registerUser);
 Router.post("/login", controller.loginUser);
+Router.post("/changePassword", controller.changePassword);
 // Router.post("/logout", controller.logoutUser);
 Router.put("/", upload.single("file"), controller.putUser);
 Router.delete("/:id", controller.deleteUser);

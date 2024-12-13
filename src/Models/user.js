@@ -40,6 +40,15 @@ export const UserSchema = z.object({
         "Password must be at least 8 characters, including uppercase, lowercase, number, and special character",
     }
   ),
+  newPassword: z
+    .string()
+    .regex(
+      /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/,
+      "Password must be at least 8 characters, include uppercase, lowercase, number, and special character"
+    )
+    .nullable()
+    .optional(),
+  repassword: z.string().nullable().optional(),
   avatar: z.string().nullable().optional(),
   profile: z.record(z.any()).nullable().optional(),
   role: z
@@ -68,12 +77,12 @@ export const UserSchema = z.object({
   isLocked: z.coerce.boolean().optional().default(false),
   deletedAt: z.date().nullable().optional(),
   createdBy: z.coerce.number().int(),
-  createdAt: z
+  createdDate: z
     .date()
     .optional()
     .default(() => new Date()),
   lastUpdatedBy: z.coerce.number().int(),
-  lastUpdatedAt: z
+  lastUpdatedDate: z
     .date()
     .optional()
     .default(() => new Date()),
@@ -84,18 +93,51 @@ export const UserSchema = z.object({
 // Input schema for creation (exclude optional/generated fields)
 export const CreateUserSchema = UserSchema.omit({
   id: true,
-  creationDate: true,
-  lastUpdateDate: true,
+  createdDate: true,
+  lastUpdatedDate: true,
   objectVersionId: true,
 });
 
 // Input schema for update (make all fields optional)
 export const UpdateSchema = UserSchema.partial();
 
-export const LoginSchema = UserSchema.pick({
-  username: true,
+export const passwordSchema = UserSchema.pick({
+  id: true,
   password: true,
-});
+  newPassword: true,
+  repassword: true,
+  createdDate: true,
+  lastUpdatedBy: true,
+  lastUpdatedDate: true,
+}).superRefine(
+  (data, context) => {
+    // Password matching validation
+    if (data.newPassword && data.newPassword !== null) {
+      if (data.repassword !== data.newPassword) {
+        context.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "Passwords do not match!",
+          path: ["repassword"],
+        });
+      }
+    }
+
+    // Ensure new password is not the same as the old password
+    if (passwordUtils.compare(data.newPassword, data.password)) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "New Password and old Password can not be the same!",
+        path: ["newPassword"],
+      });
+    }
+    // All validations passed
+    return true;
+  },
+  {
+    // This default message can be overridden by specific issues added above
+    message: "Password validation failed",
+  }
+);
 
 export class User {
   // Private field for storing password securely
@@ -118,22 +160,16 @@ export class User {
             : data.passworded
             ? passwordUtils.hash(process.env.PASSKEY)
             : undefined,
-        createdAt: data.createdAt ? new Date(data.createdAt) : new Date(),
-        lastUpdatedAt: data.lastUpdatedAt
-          ? new Date(data.lastUpdatedAt)
+        createdDate: data.createdDate ? new Date(data.createdDate) : new Date(),
+        lastUpdatedDate: data.lastUpdatedDate
+          ? new Date(data.lastUpdatedDate)
           : new Date(),
       };
 
+      const validate = this.validate(processedData);
+
       // Validate and parse input data
-      // console.log("after parse");
-      // console.log(processedData);
-      this.#data = UserSchema.parse(processedData);
-
-      // Securely store the password
-      this.#password = this.#data.password;
-
-      // Remove password from the main data object
-      delete this.#data.password;
+      this.generateData(validate, processedData);
     } catch (error) {
       // if (error instanceof z.ZodError) {
       //   console.log(error);
@@ -153,15 +189,6 @@ export class User {
     }
   }
 
-  // Secure method to check password without exposing it
-  verifyPassword(inputPassword) {
-    return passwordUtils.compare(inputPassword, this.#password);
-  }
-
-  isPassworded() {
-    return !!this.#password;
-  }
-
   // Getter methods for accessing properties
   get id() {
     return this.#data.id;
@@ -171,6 +198,12 @@ export class User {
   }
   get email() {
     return this.#data.email;
+  }
+  get newPassword() {
+    return this.#data.newPassword;
+  }
+  get repassword() {
+    return this.#data.repassword;
   }
   get avatar() {
     return this.#data.avatar;
@@ -214,14 +247,14 @@ export class User {
   get createdBy() {
     return this.#data.createdBy;
   }
-  get createdAt() {
-    return this.#data.createdAt;
+  get createdDate() {
+    return this.#data.createdDate;
   }
   get lastUpdatedBy() {
     return this.#data.lastUpdatedBy;
   }
-  get lastUpdatedAt() {
-    return this.#data.lastUpdatedAt;
+  get lastUpdatedDate() {
+    return this.#data.lastUpdatedDate;
   }
   get objectVersionId() {
     return this.#data.objectVersionId;
@@ -230,17 +263,70 @@ export class User {
     return this.#data.auditTrail;
   }
 
-  // // Method to set a new password with hashing
-  // setPassword(password) {
-  //   // Validate password first using Zod schema
-  //   UserSchema.pick({ password: true }).parse({ password });
+  generateData(status, data) {
+    // Status is valid, process the data normally
+    if (status.isValid) {
+      this.#data = UserSchema.parse(data);
 
-  //   // Hash and update password
-  //   this.#data = {
-  //     ...this.#data,
-  //     password: passwordUtils.hash(password),
-  //   };
-  // }
+      // Securely store the password
+      this.#password = this.#data.password;
+
+      // Remove password from the main data object
+      this.removeCredential();
+      return;
+    }
+
+    // Update user data: role, avatar, and lastUpdatedBy
+    if (data.id && data.role && data.lastUpdatedBy) {
+      this.#data = UpdateSchema.parse(data);
+
+      // Remove password from the main data object
+      this.removeCredential();
+      return;
+    }
+
+    // Update only password
+    if (
+      data.id &&
+      data.password !== undefined &&
+      data.newPassword &&
+      data.repassword
+    ) {
+      this.#data = passwordSchema.parse(data);
+      this.#password = this.#data.password;
+
+      // Remove password from the main data object
+      delete this.#data.password;
+      return;
+    }
+
+    // If no valid scenarios match, throw an error
+    throw new Error(status.errors);
+  }
+
+  // Secure method to check password without exposing it
+  verifyPassword(inputPassword) {
+    return passwordUtils.compare(inputPassword, this.#password);
+  }
+
+  verifyRepassword() {
+    // console.log("new password:" + this.#data.newPassword);
+    // console.log("re password:" + this.#data.repassword);
+    // console.log(
+    //   passwordUtils.check(this.#data.newPassword, this.#data.repassword)
+    // );
+    return passwordUtils.check(this.#data.newPassword, this.#data.repassword);
+  }
+
+  isPassworded() {
+    return !!this.#password;
+  }
+
+  removeCredential() {
+    delete this.#data.password;
+    delete this.#data.newPassword;
+    delete this.#data.repassword;
+  }
 
   // Method to set a new password with hashing
   setPassword(password) {
@@ -265,37 +351,20 @@ export class User {
     }
   }
 
-  // Validate method (optional, as Zod does validation during construction)
-  // validate() {
-  //   try {
-  //     UserSchema.parse(this.#data);
-  //     // this.setPassword(this.data.password);
-  //     return {
-  //       isValid: true,
-  //       errors: [],
-  //     };
-  //   } catch (error) {
-  //     if (error instanceof z.ZodError) {
-  //       return {
-  //         isValid: false,
-  //         errors: error.errors.map((err) => err.message),
-  //       };
-  //     }
-  //     throw error;
-  //   }
-  // }
-
   // Validate method with enhanced error reporting
-  validate() {
+  validate(data) {
     try {
       // Reconstruct the full data object for validation
-      const fullData = { ...this.#data, password: this.#password };
+      const fullData = data
+        ? data
+        : { ...this.#data, password: this.#password };
       UserSchema.parse(fullData);
       return {
         isValid: true,
         errors: [],
       };
     } catch (error) {
+      // console.error("Error:", error);
       if (error instanceof z.ZodError) {
         return {
           isValid: false,
@@ -307,27 +376,6 @@ export class User {
   }
 
   // Method to update user data with validation
-  // update(updates = {}) {
-  //   try {
-  //     // Merge existing data with updates and re-validate
-  //     this.#data = UserSchema.parse({
-  //       ...this.#data,
-  //       ...updates,
-  //       lastUpdatedAt: new Date(),
-  //     });
-  //     return this;
-  //   } catch (error) {
-  //     if (error instanceof z.ZodError) {
-  //       const errorMessages = error.errors.map((err) => err.message);
-  //       throw new Error(
-  //         `Update validation failed: ${errorMessages.join(", ")}`
-  //       );
-  //     }
-  //     throw error;
-  //   }
-  // }
-
-  // Method to update user data with validation
   update(updates = {}) {
     try {
       // Merge existing data with updates and re-validate
@@ -335,10 +383,8 @@ export class User {
         ...this.#data,
         ...updates,
         password: this.#password,
-        lastUpdatedAt: new Date(),
+        lastUpdatedDate: new Date(),
       };
-
-      console.log(fullData);
 
       this.#data = UserSchema.parse(fullData);
 
@@ -357,36 +403,19 @@ export class User {
     }
   }
 
-  // // Secure JSON serialization
-  // toJSON() {
-  //   const { password, ...safeUser } = this.#data;
-  //   return {
-  //     ...safeUser,
-  //     createdAt: this.createdAt.toISOString(),
-  //     lastUpdatedAt: this.lastUpdatedAt.toISOString(),
-  //   };
-  // }
-
   // Secure JSON serialization
   toJSON() {
     return {
       ...this.#data,
-      createdAt: this.createdAt.toISOString(),
-      lastUpdatedAt: this.lastUpdatedAt.toISOString(),
+      createdDate: this.createdDate.toISOString(),
+      lastUpdatedDate: this.lastUpdatedDate.toISOString(),
     };
   }
 
   // Method to get data ready for Prisma creation
-  // toData() {
-  //   const { createdAt, lastUpdatedAt, objectVersionId, ...prismaInput } =
-  //     this.#data;
-  //   return prismaInput;
-  // }
-
-  // Method to get data ready for Prisma creation
   toData() {
     const passworded = this.isPassworded();
-    const { createdAt, lastUpdatedAt, objectVersionId, ...prismaInput } = {
+    const { createdDate, lastUpdatedDate, objectVersionId, ...prismaInput } = {
       ...this.#data,
       passworded,
     };
@@ -399,13 +428,12 @@ export class User {
   }
 
   [util.inspect.custom]() {
-    // return this.#password;
     return this.toJSON();
   }
 }
 
 // export default User;
-export default { User, UpdateSchema, LoginSchema };
+export default User;
 
 // export class User {
 //   constructor(data = {}) {
@@ -436,8 +464,8 @@ export default { User, UpdateSchema, LoginSchema };
 //       ? new Date(data.creationDate)
 //       : new Date();
 //     this.lastUpdatedBy = data.lastUpdatedBy ? Number(data.lastUpdatedBy) : null;
-//     this.lastUpdateDate = data.lastUpdateDate
-//       ? new Date(data.lastUpdateDate)
+//     this.lastUpdatedDatee = data.lastUpdatedDatee
+//       ? new Date(data.lastUpdatedDatee)
 //       : new Date();
 //     this.objectVersionId = data.objectVersionId
 //       ? Number(data.objectVersionId)
@@ -493,7 +521,7 @@ export default { User, UpdateSchema, LoginSchema };
 //     return {
 //       ...safeUser,
 //       creationDate: this.creationDate.toISOString(),
-//       lastUpdateDate: this.lastUpdateDate.toISOString(),
+//       lastUpdatedDatee: this.lastUpdatedDatee.toISOString(),
 //     };
 //   }
 // }
