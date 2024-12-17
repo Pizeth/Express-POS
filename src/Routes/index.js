@@ -49,21 +49,22 @@ import stockRoutes from "./stock.js";
 import profileRoutes from "./profile.js";
 import userRoutes from "./user.js";
 import uploadRoutes from "./fileUpload.js";
-import { error } from "../Utils/form.js";
+// import { error } from "../Utils/form.js";
+import { authMiddleware } from "../Middlewares/authMiddleware.js";
 
-const secretKey = process.env.SECRET_KEY || 270400;
+// const secretKey = process.env.SECRET_KEY || 270400;
 const Router = express.Router();
 
-const validateUser = (req, res, next) => {
-  jwt.verify(req.headers["x-access-token"], secretKey, (err, decoded) => {
-    if (err) {
-      error(res, err.message);
-    } else {
-      req.body.user_id = decoded.id;
-      next();
-    }
-  });
-};
+// const validateUser = (req, res, next) => {
+//   jwt.verify(req.headers["x-access-token"], secretKey, (err, decoded) => {
+//     if (err) {
+//       error(res, err.message);
+//     } else {
+//       req.body.user_id = decoded.id;
+//       next();
+//     }
+//   });
+// };
 
 Router.get("/", (req, res) => {
   res.json({
@@ -75,14 +76,14 @@ Router.get("/", (req, res) => {
 });
 
 // Routes with middleware
-Router.use("/category", validateUser, categoryRoutes);
-Router.use("/subCategory", validateUser, subCategory);
-Router.use("/manufacturer", validateUser, manufacturer);
-Router.use("/productType", validateUser, productType);
-Router.use("/product", validateUser, productRoutes);
-Router.use("/stock", validateUser, stockRoutes);
+Router.use("/category", authMiddleware, categoryRoutes);
+Router.use("/subCategory", authMiddleware, subCategory);
+Router.use("/manufacturer", authMiddleware, manufacturer);
+Router.use("/productType", authMiddleware, productType);
+Router.use("/product", authMiddleware, productRoutes);
+Router.use("/stock", authMiddleware, stockRoutes);
 // Router.use("/order", validateUser, orderRoutes);
-Router.use("/profile", validateUser, profileRoutes);
+Router.use("/profile", authMiddleware, profileRoutes);
 Router.use("/user", userRoutes);
 Router.use("/upload", uploadRoutes);
 

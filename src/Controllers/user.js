@@ -186,6 +186,20 @@ export const deleteUser = (req, res) => {
     });
 };
 
+export const logout = (req, res) => {
+  const refreshToken = req.cookies.refreshToken;
+  service
+    .logout(refreshToken)
+    .then((response) => {
+      // Clear refresh token cookie
+      res.clearCookie("refreshToken");
+      success(res, 200, response.message);
+    })
+    .catch((err) => {
+      error(res, 400, err);
+    });
+};
+
 // Optional: If you want to export all functions as a single object
 export default {
   getUser,
