@@ -1,7 +1,7 @@
 // middleware/securityMiddleware.js
 import helmet from "helmet";
 import rateLimit from "express-rate-limit";
-import { AuthService } from "../Services/authService";
+import { AuthService } from "../Services/authService.js";
 
 export class SecurityMiddleware {
   // Comprehensive security middleware

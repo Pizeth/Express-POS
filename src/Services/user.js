@@ -152,25 +152,6 @@ export class UserService {
     }
   }
 
-  // Audit Trail Methods
-  static async createAuditTrail(
-    userId,
-    action,
-    description,
-    ipAddress,
-    category = null
-  ) {
-    return prisma.auditTrail.create({
-      data: {
-        userId,
-        action,
-        description,
-        ipAddress,
-        category: category ? { connect: { id: category } } : undefined,
-      },
-    });
-  }
-
   // Password Reset Workflow
   static async initiatePasswordReset(email) {
     const user = await UserRepository.findByEmail(email);
@@ -385,6 +366,18 @@ export class UserService {
       console.error(`Error deleting user ${id}:`, error);
       throw error;
     }
+  }
+  // Logout
+  static async logout(refreshToken, req) {
+    if (!refreshToken) {
+      logError("User Logout", error, req);
+      throw new Error("Refresh token is required");
+    }
+
+    // Delete refresh token from database
+    tokenManager.remove(refreshToken);
+
+    return { message: "Logged out successfully" };
   }
 }
 
