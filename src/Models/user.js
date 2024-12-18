@@ -2,6 +2,7 @@
 import util from "util";
 import passwordUtils from "../Utils/passwordUtils.js";
 import z from "zod";
+import AppError from "../Utils/errorHandler.js";
 
 // Utility function to format Zod errors
 // Enhanced Zod error handling utility
@@ -12,6 +13,18 @@ function formatZodError(error) {
     code: err.code,
   }));
 }
+
+// Helper function for transforming role to uppercase
+// Define the roles
+const roles = ["SUPER_ADMIN", "ADMIN", "MANAGER", "CASHIER", "USER"];
+// Create a schema for the role with transformation and validation
+const roleSchema = z
+  .string()
+  .optional()
+  .transform((val) => val.toUpperCase())
+  .refine((val) => roles.includes(val), { message: "Invalid role" })
+  .optional()
+  .default("USER");
 
 // Zod schema for user validation
 export const UserSchema = z.object({
@@ -37,24 +50,25 @@ export const UserSchema = z.object({
     },
     {
       message:
-        "Password must be at least 8 characters, including uppercase, lowercase, number, and special character",
+        "Password must be at least 8 characters, including uppercase, lowercase, number, and special character!",
     }
   ),
   newPassword: z
     .string()
     .regex(
       /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/,
-      "Password must be at least 8 characters, include uppercase, lowercase, number, and special character"
+      "Password must be at least 8 characters, include uppercase, lowercase, number, and special character!"
     )
     .nullable()
     .optional(),
   repassword: z.string().nullable().optional(),
   avatar: z.string().nullable().optional(),
   profile: z.record(z.any()).nullable().optional(),
-  role: z
-    .enum(["SUPER_ADMIN", "ADMIN", "MANAGER", "CASHIER", "USER"])
-    .optional()
-    .default("USER"),
+  // role: z
+  //   .enum(["SUPER_ADMIN", "ADMIN", "MANAGER", "CASHIER", "USER"])
+  //   .optional()
+  //   .default("USER"),
+  role: roleSchema,
   authMethod: z
     .enum([
       "PASSWORD",
@@ -277,7 +291,7 @@ export class User {
     }
 
     // Update user data: role, avatar, and lastUpdatedBy
-    if (data.id && data.role && data.lastUpdatedBy) {
+    if (this.isUpdateSchema(data)) {
       this.#data = UpdateSchema.parse(data);
 
       // Remove password from the main data object
@@ -286,12 +300,7 @@ export class User {
     }
 
     // Update only password
-    if (
-      data.id &&
-      data.password !== undefined &&
-      data.newPassword &&
-      data.repassword
-    ) {
+    if (this.isPasswordSchema(data)) {
       this.#data = passwordSchema.parse(data);
       this.#password = this.#data.password;
 
@@ -301,7 +310,7 @@ export class User {
     }
 
     // If no valid scenarios match, throw an error
-    throw new Error(status.errors);
+    throw new AppError("Failed to generate user's data!", 405, status.errors);
   }
 
   // Secure method to check password without exposing it
@@ -320,6 +329,19 @@ export class User {
 
   isPassworded() {
     return !!this.#password;
+  }
+
+  isUpdateSchema(data) {
+    return data.id && data.role && data.lastUpdatedBy;
+  }
+
+  isPasswordSchema(data) {
+    return (
+      data.id &&
+      data.password !== undefined &&
+      data.newPassword &&
+      data.repassword
+    );
   }
 
   removeCredential() {
@@ -364,7 +386,7 @@ export class User {
         errors: [],
       };
     } catch (error) {
-      // console.error("Error:", error);
+      // console.error("Error:", formatZodError(error));
       if (error instanceof z.ZodError) {
         return {
           isValid: false,
@@ -385,11 +407,15 @@ export class User {
         password: this.#password,
         lastUpdatedDate: new Date(),
       };
+      const validate = this.validate(fullData);
+      // Validate and parse input data
+      this.generateData(validate, fullData);
 
-      this.#data = UserSchema.parse(fullData);
+      // this.#data = UserSchema.parse(fullData);
 
-      // Remove password from main data object again
-      delete this.#data.password;
+      // // Remove password from main data object again
+      // // Remove password from the main data object
+      // this.removeCredential();
 
       return this;
     } catch (error) {

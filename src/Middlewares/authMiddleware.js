@@ -31,7 +31,8 @@ export const authMiddleware = (req, res, next) => {
   try {
     // Verify the token
     const decoded = tonkenManager.verifyTokenClaims(token, req);
-    console.log(decoded);
+    console.log("decode");
+    console.log(tonkenManager.sanitizeTokenForLogging(decoded));
     // const decoded = jwt.verify(token, secretKey);
 
     // Attach user information to the request
@@ -45,12 +46,15 @@ export const authMiddleware = (req, res, next) => {
 
     req.user = decoded;
 
+    // console.log(req.user);
+
     next();
   } catch (err) {
+    // console.log(err);
     if (err.name === "TokenExpiredError") {
       return error(res, 401, "Token expired");
     }
-    return error(res, 403, "Failed to authenticate token");
+    return error(res, 403, `Failed to authenticate token - ${err.message}`);
   }
 };
 

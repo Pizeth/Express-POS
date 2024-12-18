@@ -1,10 +1,10 @@
 // utils/errorHandler.js
 class AppError extends Error {
-  constructor(message, statusCode) {
+  constructor(message, statusCode, data) {
     super(message);
     this.statusCode = statusCode;
     this.isOperational = true;
-
+    this.data = data;
     Error.captureStackTrace(this, this.constructor);
   }
 }
@@ -25,17 +25,17 @@ class ErrorHandler {
     this.logError(err, req);
   }
 
-  static logError(err, req) {
-    // Implement logging to external service (e.g., Sentry, LogRocket)
-    console.error({
-      message: err.message,
-      stack: err.stack,
-      user: req.user?.id,
-      path: req.path,
-      method: req.method,
-      timestamp: new Date().toISOString(),
-    });
-  }
+  // static logError(err, req) {
+  //   // Implement logging to external service (e.g., Sentry, LogRocket)
+  //   console.error({
+  //     message: err.message,
+  //     stack: err.stack,
+  //     user: req.user?.id,
+  //     path: req.path,
+  //     method: req.method,
+  //     timestamp: new Date().toISOString(),
+  //   });
+  // }
 }
 
-export { AppError, ErrorHandler };
+export default AppError;

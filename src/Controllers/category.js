@@ -80,9 +80,11 @@ export const get = (req, res) => {
   model
     .get(req)
     .then((response) => {
+      console.log(response);
       success(res, 200, response);
     })
     .catch((err) => {
+      console.log(err);
       error(res, 400, err);
     });
 };

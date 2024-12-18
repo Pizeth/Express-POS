@@ -250,6 +250,10 @@ export class UserService {
           const avatar = await upload.uploadFile(req, existingUser.username);
           fileName = avatar && avatar.status === 400 ? "" : avatar.fileName;
 
+          user.update({
+            avatar: avatar.url,
+          });
+
           // Create user with more detailed error tracking
           const newUser = await tx.user.update({
             where: { id: user.id },

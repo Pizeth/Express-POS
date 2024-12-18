@@ -24,9 +24,12 @@ export const logError = (context, error, req) => {
   const os = parser.getOS();
   const device = parser.getDevice();
 
+  // console.log(error);
+
   console.error(`[${context}] Error:`, {
-    message: error.message,
+    message: error.data || error.message,
     stack: error.stack,
+    code: error.statusCode || null,
     browser: browser.name,
     os: os.name,
     device: device,

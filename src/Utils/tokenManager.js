@@ -148,33 +148,6 @@ export class TokenManager {
     return data;
   }
 
-  // In your authentication middleware
-  // async authenticate(req, res, next) {
-  //   try {
-  //     const token = req.headers.authorization?.split(" ")[1];
-
-  //     if (!token) {
-  //       return res.status(401).json({ message: "No token provided" });
-  //     }
-
-  //     // Verify token signature and claims
-  //     const verifiedToken = await this.verifyTokenClaims(token);
-
-  //     // Attach user to request for further use
-  //     req.user = verifiedToken;
-  //     next();
-  //   } catch (error) {
-  //     // Log the full error internally
-  //     this.logger.error("Authentication failed", {
-  //       error: error.message,
-  //       ip: req.ip,
-  //     });
-
-  //     // Send generic response to client
-  //     res.status(401).json({ message: "Authentication failed" });
-  //   }
-  // }
-
   static verifyMFAToken() {}
 }
 
