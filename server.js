@@ -39,6 +39,7 @@ import cookieParser from "cookie-parser";
 import cors from "cors";
 import helmet from "helmet";
 import rateLimit from "express-rate-limit";
+import { ErrorHandler } from "./src/Utils/responseHandler.js";
 import Router from "./src/Routes/index.js"; // Note: .js extension is required for ES modules
 
 // Initialize environment variables
@@ -94,12 +95,17 @@ server.use("/", Router);
 // server.use('/api/auth', authRoutes);
 
 // Error handling middleware
+// server.use((err, req, res, next) => {
+//   console.error(err.stack);
+//   res.status(500).json({
+//     message: "Something went wrong!",
+//     error: process.env.NODE_ENV === "production" ? {} : err.stack,
+//   });
+// });
+
+// Global error handling middleware
 server.use((err, req, res, next) => {
-  console.error(err.stack);
-  res.status(500).json({
-    message: "Something went wrong!",
-    error: process.env.NODE_ENV === "production" ? {} : err.stack,
-  });
+  ErrorHandler.handle(err.message, err, req, res, next);
 });
 
 // 404 handler

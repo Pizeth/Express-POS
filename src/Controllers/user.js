@@ -2,6 +2,8 @@
 import service from "../Services/user.js";
 import repo from "../Repositories/user.js";
 import { success, error } from "../Utils/form.js";
+import { clientResponse } from "../Utils/responseHandler.js";
+import statusCode from "http-status-codes";
 import { response } from "express";
 
 export const getUser = (req, res) => {
@@ -87,15 +89,28 @@ export const registerUser = async (req, res) => {
   }
 };
 
-export const putUser = (req, res) => {
+export const putUser = async (req, res, next) => {
   const param = req.body;
+  // try {
+  //   await service.updateUser(param, req, res);
+  //   success(res, 200, "User " + response.username + " updated successfully");
+  // } catch (error) {
+  //   next(error);
+  // }
   service
     .updateUser(param, req, res)
     .then((response) => {
-      success(res, 200, "User " + response.username + " updated successfully");
+      clientResponse(
+        res,
+        statusCode.OK,
+        response,
+        "User " + response.username + " updated successfully"
+      );
+      // success(res, 200, "User " + response.username + " updated successfully");
     })
     .catch((err) => {
-      error(res, 400, err);
+      // error(res, 400, err);
+      next(err);
     });
 };
 

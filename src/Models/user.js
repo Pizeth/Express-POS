@@ -2,7 +2,8 @@
 import util from "util";
 import passwordUtils from "../Utils/passwordUtils.js";
 import z from "zod";
-import AppError from "../Utils/errorHandler.js";
+import { AppError } from "../Utils/responseHandler.js";
+import statusCode from "http-status-codes";
 
 // Utility function to format Zod errors
 // Enhanced Zod error handling utility
@@ -310,7 +311,11 @@ export class User {
     }
 
     // If no valid scenarios match, throw an error
-    throw new AppError("Failed to generate user's data!", 405, status.errors);
+    throw new AppError(
+      "Failed to generate user's data!",
+      statusCode.EXPECTATION_FAILED,
+      status.errors
+    );
   }
 
   // Secure method to check password without exposing it
@@ -407,6 +412,8 @@ export class User {
         password: this.#password,
         lastUpdatedDate: new Date(),
       };
+
+      console.log(fullData);
       const validate = this.validate(fullData);
       // Validate and parse input data
       this.generateData(validate, fullData);

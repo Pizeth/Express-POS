@@ -29,7 +29,7 @@ export const logError = (context, error, req) => {
   console.error(`[${context}] Error:`, {
     message: error.data || error.message,
     stack: error.stack,
-    code: error.statusCode || null,
+    code: error.statusCode || 500,
     browser: browser.name,
     os: os.name,
     device: device,

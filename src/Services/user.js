@@ -4,6 +4,7 @@ import User from "../Models/user.js";
 import UserRepo from "../Repositories/user.js";
 import upload from "../Services/fileUpload.js";
 import { logError } from "../Utils/form.js";
+import { ErrorHandler } from "../Utils/responseHandler.js";
 import loginRepo from "../Repositories/loginAttempt.js";
 import tokenManager from "../Utils/tokenManager.js";
 import passwordUtils from "../Utils/passwordUtils.js";
@@ -248,21 +249,30 @@ export class UserService {
           }
 
           const avatar = await upload.uploadFile(req, existingUser.username);
-          fileName = avatar && avatar.status === 400 ? "" : avatar.fileName;
 
-          user.update({
-            avatar: avatar.url,
-          });
+          // user.update({
+          //   avatar: avatar?.status === 200 ? avatar.url : existingUser.avatar,
+          // });
+          // fileName = avatar?.status === 200 ? avatar.fileName : fileName;
+
+          avatar?.status === 200
+            ? [
+                user.update({ avatar: avatar.url }),
+                (fileName = avatar.fileName),
+              ]
+            : [user.update({ avatar: existingUser.avatar })];
+
+          // fileName = avatar && avatar.status === 400 ? "" : avatar.fileName;
 
           // Create user with more detailed error tracking
           const newUser = await tx.user.update({
             where: { id: user.id },
             data: {
-              ...user,
-              avatar:
-                avatar && avatar.status === 200
-                  ? avatar.url
-                  : existingUser.avatar,
+              ...user.toNew(),
+              // avatar:
+              //   avatar && avatar.status === 200
+              //     ? avatar.url
+              //     : existingUser.avatar,
               objectVersionId: { increment: 1 },
               // Add audit trail information
               auditTrail: {
@@ -293,7 +303,8 @@ export class UserService {
         }
       }
       // Centralized error logging
-      logError("User Update", error, req);
+      // logError("User Update", error, req);
+      // ErrorHandler.handle("User Update", error, req);
       throw error;
     }
   }
@@ -305,6 +316,7 @@ export class UserService {
       //   throw new Error("New Password and Re Password does not match!");
       // }
 
+      console.log(passwordUtils.hash(data.password));
       // Transaction for atomic operations
       return await prisma.$transaction(
         async (tx) => {
@@ -325,6 +337,8 @@ export class UserService {
           if (existingUser.verifyPassword(user.newPassword)) {
             throw new Error("New Password cannot be the same as old Password!");
           }
+
+          console.log(user.toNew());
 
           // Create user with more detailed error tracking
           const newUser = await tx.user.update({
