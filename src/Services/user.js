@@ -4,10 +4,11 @@ import User from "../Models/user.js";
 import UserRepo from "../Repositories/user.js";
 import upload from "../Services/fileUpload.js";
 import { logError } from "../Utils/form.js";
-import { ErrorHandler } from "../Utils/responseHandler.js";
+import { AppError, ErrorHandler } from "../Utils/responseHandler.js";
 import loginRepo from "../Repositories/loginAttempt.js";
 import tokenManager from "../Utils/tokenManager.js";
 import passwordUtils from "../Utils/passwordUtils.js";
+import statusCode from "http-status-codes";
 
 export class UserService {
   // Register a new user
@@ -97,24 +98,40 @@ export class UserService {
       // Check if user existed
       if (!user) {
         await loginRepo.recordLoginAttempt(username, req, "FAILED");
-        throw new Error("User not found!");
+        throw new AppError(
+          "User not found!",
+          statusCode.NOT_FOUND,
+          `No user associated with ${username}`
+        );
       }
 
       // Check if user is banned or deleted
       if (user.isBan || !user.enabledFlag) {
         await loginRepo.recordLoginAttempt(user, req, "FAILED");
-        throw new Error("Account is banned or inactive!");
+        throw new AppErrorError(
+          "Account is banned or inactive!",
+          statusCode.FORBIDDEN,
+          `User ${username} is banned or inactive!`
+        );
       }
 
       // Check if user is locked
       if (user.isLocked) {
         await loginRepo.recordLoginAttempt(user, req, "FAILED");
-        throw new Error("Account locked due to multiple failed attempts!");
+        throw new AppErrorError(
+          "Account locked due to multiple failed attempts!",
+          statusCode.FORBIDDEN,
+          `User ${username} is locked!`
+        );
       } else if (user.loginAttempts >= process.env.LOCKED) {
         // If the user has 5 attempts or more then lock this user
         await UserRepo.updateUserStatus(user.id, { isLocked: true });
         await loginRepo.recordLoginAttempt(user, req, "FAILED");
-        throw new Error("Too many failed attempts, account is locked!");
+        throw new AppError(
+          "Too many failed attempts, account is locked!",
+          statusCode.FORBIDDEN,
+          `User ${username} is locked, due to multiple failed attempts.`
+        );
       }
 
       // Verify password
@@ -124,7 +141,9 @@ export class UserService {
         // Increment login attempts
         await UserRepo.incrementLoginAttempts(user.toData());
         await loginRepo.recordLoginAttempt(user, req, "FAILED");
-        throw new Error("Invalid credentials");
+        throw new AppError("Invalid credentials", statusCode.UNAUTHORIZED, {
+          message: "Invalid username or password!",
+        });
       }
 
       // Reset login attempts on successful login
@@ -148,7 +167,7 @@ export class UserService {
         refreshToken: refreshToken.token,
       };
     } catch (error) {
-      logError("User login error:", error, req);
+      // logError("User login error:", error, req);
       throw error;
     }
   }
@@ -310,13 +329,14 @@ export class UserService {
   }
 
   static async updatePassword(data, req) {
+    console.log(data);
+    console.log(passwordUtils.hash(data.password));
     try {
       const user = new User(data);
       // if (!user.verifyRepassword()) {
       //   throw new Error("New Password and Re Password does not match!");
       // }
 
-      console.log(passwordUtils.hash(data.password));
       // Transaction for atomic operations
       return await prisma.$transaction(
         async (tx) => {
@@ -330,7 +350,11 @@ export class UserService {
 
           // Verify the user password
           if (!existingUser.verifyPassword(data.password)) {
-            throw new Error("Password does not match!");
+            throw new AppError(
+              "Password does not match!",
+              statusCode.UNPROCESSABLE_ENTITY,
+              "PasswordMismatch"
+            );
           }
 
           // Verify the user new password
@@ -367,7 +391,7 @@ export class UserService {
       );
     } catch (error) {
       // Centralized error logging
-      logError("User Update", error, req);
+      // logError("User Update", error, req);
       throw error;
     }
   }

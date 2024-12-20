@@ -2,7 +2,7 @@
 import service from "../Services/user.js";
 import repo from "../Repositories/user.js";
 import { success, error } from "../Utils/form.js";
-import { clientResponse } from "../Utils/responseHandler.js";
+import { AppError, clientResponse } from "../Utils/responseHandler.js";
 import statusCode from "http-status-codes";
 import { response } from "express";
 
@@ -91,12 +91,6 @@ export const registerUser = async (req, res) => {
 
 export const putUser = async (req, res, next) => {
   const param = req.body;
-  // try {
-  //   await service.updateUser(param, req, res);
-  //   success(res, 200, "User " + response.username + " updated successfully");
-  // } catch (error) {
-  //   next(error);
-  // }
   service
     .updateUser(param, req, res)
     .then((response) => {
@@ -106,61 +100,111 @@ export const putUser = async (req, res, next) => {
         response,
         "User " + response.username + " updated successfully"
       );
-      // success(res, 200, "User " + response.username + " updated successfully");
     })
     .catch((err) => {
-      // error(res, 400, err);
       next(err);
     });
 };
 
-export const changePassword = (req, res) => {
+export const changePassword = (req, res, next) => {
   const param = req.body;
   service
     .updatePassword(param, req)
     .then((response) => {
-      success(res, 200, "Password changed successfully");
+      clientResponse(
+        res,
+        statusCode.OK,
+        response,
+        "Password changed successfully"
+      );
     })
     .catch((err) => {
-      console.log(err);
-      error(res, 400, err);
+      next(err);
     });
 };
 
-export const loginUser = (req, res) => {
-  const param = req.body;
-  if (param.username == null) return error(res, 400, "Username can't be empty");
-  if (param.password == null) return error(res, 400, "Password can't be empty");
+export const loginUser = async (req, res, next) => {
+  try {
+    const param = req.body;
+    if (!param.username) {
+      throw new AppError(
+        "Username can't be empty",
+        statusCode.UNPROCESSABLE_ENTITY,
+        { field: "username", expected: "not null", received: "null" }
+      );
+    }
+    if (!param.password) {
+      throw new AppError(
+        "Password can't be empty",
+        statusCode.UNPROCESSABLE_ENTITY,
+        { field: "password", expected: "not null", received: "null" }
+      );
+    }
+    const response = await service.login(param, req);
 
-  service
-    .login(param, req)
-    .then((response) => {
-      if (response) {
-        // Set refresh token as HTTP-only cookie
-        res.cookie("refreshToken", response.refreshToken, {
-          httpOnly: true,
-          secure: process.env.NODE_ENV === "production",
-          sameSite: "strict",
-          maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
-        });
+    if (!response) {
+      throw new AppError(
+        "Password can't be empty",
+        statusCode.UNPROCESSABLE_ENTITY,
+        res
+      );
+    }
 
-        success(res, 200, {
-          user_id: response.data.id,
-          username: response.data.username,
-          email: response.data.email,
-          role: response.data.role,
-          avatar: response.data.avatar,
-          token: response.token,
-          refreshToken: response.refreshToken,
-        });
-      } else {
-        error(res, 400, "User not found");
-      }
-    })
-    .catch((err) => {
-      console.log(err);
-      error(res, 400, err);
+    // Set refresh token as HTTP-only cookie
+    res.cookie("refreshToken", response.refreshToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "strict",
+      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
     });
+
+    clientResponse(
+      res,
+      statusCode.OK,
+      {
+        user_id: response.data.id,
+        username: response.data.username,
+        email: response.data.email,
+        role: response.data.role,
+        avatar: response.data.avatar,
+        token: response.token,
+        refreshToken: response.refreshToken,
+      },
+      "Login success!"
+    );
+  } catch (error) {
+    next(error);
+  }
+
+  // service
+  //   .login(param, req)
+  //   .then((response) => {
+  //     if (response) {
+  //       // Set refresh token as HTTP-only cookie
+  //       res.cookie("refreshToken", response.refreshToken, {
+  //         httpOnly: true,
+  //         secure: process.env.NODE_ENV === "production",
+  //         sameSite: "strict",
+  //         maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+  //       });
+
+  //       success(res, 200, {
+  //         user_id: response.data.id,
+  //         username: response.data.username,
+  //         email: response.data.email,
+  //         role: response.data.role,
+  //         avatar: response.data.avatar,
+  //         token: response.token,
+  //         refreshToken: response.refreshToken,
+  //       });
+  //     } else {
+  //       error(res, 400, "User not found");
+  //     }
+  //   })
+  //   .catch((err) => {
+  //     console.log(err);
+  //     error(res, 400, err);
+  //   });
 };
 
 export const getRefreshToken = (req, res) => {

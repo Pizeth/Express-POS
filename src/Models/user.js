@@ -145,6 +145,7 @@ export const passwordSchema = UserSchema.pick({
         path: ["newPassword"],
       });
     }
+    passwordUtils.hash(data.newPassword);
     // All validations passed
     return true;
   },
