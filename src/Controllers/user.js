@@ -6,18 +6,33 @@ import { AppError, clientResponse } from "../Utils/responseHandler.js";
 import statusCode from "http-status-codes";
 import { response } from "express";
 
-export const getUser = (req, res) => {
+export const getUser = async (req, res, next) => {
+  try {
+    const { page, limit, sort, order } = req.query;
+    console.log(req.query);
+    const result = await repo.findUsers(page, limit, sort, order);
+    console.log(result);
+    return clientResponse(
+      res,
+      statusCode.OK,
+      result,
+      "User data fetched successfully"
+    );
+    // return result.data;
+  } catch (error) {
+    next(error);
+  }
   // const page = fPagination(req);
-  const param = req.param;
-  repo
-    .findUsers(param.page, param.pageSize, param.orderBy, param.orderDirection)
-    .then((response) => {
-      success(res, 200, response);
-    })
-    .catch((err) => {
-      console.log(err);
-      error(res, 400, err);
-    });
+  // const param = req.param;
+  // repo
+  //   .findUsers(param.page, param.limit, param.sort, param.order)
+  //   .then((response) => {
+  //     success(res, 200, response);
+  //   })
+  //   .catch((err) => {
+  //     console.log(err);
+  //     error(res, 400, err);
+  //   });
 };
 
 export const getUserId = (req, res) => {

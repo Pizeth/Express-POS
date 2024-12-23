@@ -14,7 +14,7 @@ export class UserRepository {
         orderDirection,
         include: {
           profile: true,
-          refreshTokens: true,
+          // refreshTokens: true,
         },
       });
       result.data.map((data) => new User(data));

@@ -169,7 +169,7 @@ async function getPaginatedData({
     select: defaultSelect,
     ...(include && { include }),
     orderBy: {
-      [orderBy]: orderDirection,
+      [orderBy]: orderDirection.toLowerCase(),
     },
   });
 
@@ -186,10 +186,7 @@ async function getPaginatedData({
     hasPreviousPage: page > 1,
   };
 
-  return {
-    data,
-    metadata,
-  };
+  return { data, metadata };
 }
 
 // Optional: Default export with all functions

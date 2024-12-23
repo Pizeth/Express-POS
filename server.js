@@ -68,7 +68,7 @@ server.use(
   cors({
     origin:
       process.env.CORS_ORIGIN ||
-      "http://localhost:3030" ||
+      "http://localhost:8080" ||
       "http://pharmacy-ui.test",
     methods: ["POST", "GET", "PUT", "PATCH", "DELETE", "HEAD"],
     credentials: true,
