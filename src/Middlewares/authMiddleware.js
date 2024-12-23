@@ -1,5 +1,6 @@
 // File: src/middleware/authMiddleware.js
-import { error } from "../Utils/form.js";
+import { AppError, clientResponse } from "../Utils/responseHandler.js";
+import statusCode from "http-status-codes";
 // import jwt from "jsonwebtoken";
 import tonkenManager from "../Utils/tokenManager.js";
 
@@ -50,11 +51,16 @@ export const authMiddleware = (req, res, next) => {
 
     next();
   } catch (err) {
-    // console.log(err);
+    console.log(err);
     if (err.name === "TokenExpiredError") {
-      return error(res, 401, "Token expired");
+      throw new AppError("Token expired", statusCode.UNAUTHORIZED, err);
+      // clientResponse(res, statusCode.UNAUTHORIZED, "Token expired");
+      // return error(res, 401, "Token expired");
     }
-    return error(res, 403, `Failed to authenticate token - ${err.message}`);
+    // throw new AppError(`Failed to authenticate token - ${err.message}`, statusCode.FORBIDDEN, err);
+    next(err);
+    // clientResponse(res, statusCode.FORBIDDEN, `Failed to authenticate token - ${err.message}`);
+    // return error(res, 403, `Failed to authenticate token - ${err.message}`);
   }
 };
 

@@ -54,7 +54,6 @@ export const getEmail = (req, res) => {
   repo
     .findByEmail(req.params.email)
     .then((response) => {
-      console.log(response);
       if (response) {
         success(res, 400, response.email + " is already exists!");
       } else {

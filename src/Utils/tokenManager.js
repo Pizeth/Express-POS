@@ -1,5 +1,7 @@
 import jwt from "jsonwebtoken";
 import TokenRepo from "../Repositories/refreshToken.js";
+import {AppError} from "../Utils/responseHandler.js";
+import statusCode from "http-status-codes";
 const secretKey = process.env.SECRET_KEY || 270400;
 const refreshTokenKey = process.env.REFRESH_TOKEN_KEY || 200794;
 
@@ -93,7 +95,8 @@ export class TokenManager {
           error: error.message,
           ip: req.ip, // Assuming you have a method to get current IP
         });
-        throw new Error("Authentication failed: Invalid token signature");
+        // throw new Error("Authentication failed: Invalid token signature");
+        throw new AppError("Authentication failed: Invalid token signature", statusCode.UNAUTHORIZED, error);
 
         // // Log the error for security monitoring
         // this.logger.security("Token verification failed", {
@@ -110,7 +113,8 @@ export class TokenManager {
           error: error.message,
           ip: req.ip,
         });
-        throw new Error("Authentication failed: Token has expired");
+        throw new AppError("Authentication failed: Token has expired", statusCode.UNAUTHORIZED, error);
+        // throw new Error("Authentication failed: Token has expired");
       }
 
       // Re-throw other errors
