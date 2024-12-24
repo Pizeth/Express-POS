@@ -9,9 +9,8 @@ import { response } from "express";
 export const getUser = async (req, res, next) => {
   try {
     const { page, limit, sort, order } = req.query;
-    console.log(req.query);
     const result = await repo.findUsers(page, limit, sort, order);
-    console.log(result);
+    // res.set("X-Total-Count", result.metadata.totalItems);
     return clientResponse(
       res,
       statusCode.OK,
@@ -35,52 +34,95 @@ export const getUser = async (req, res, next) => {
   //   });
 };
 
-export const getUserId = (req, res) => {
-  repo
-    .findById(req.params.id)
-    .then((response) => {
-      if (response) {
-        success(res, 200, response);
-      } else {
-        error(res, 400, "User not found!");
-      }
-    })
-    .catch((err) => {
-      error(res, 400, err);
-    });
+export const getUserId = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    if (!id) {
+      throw new AppError(
+        "User ID can't be empty",
+        statusCode.UNPROCESSABLE_ENTITY,
+        { field: "id", expected: "not null", received: "null" }
+      );
+    }
+    const result = await repo.findById(id || 0);
+    return clientResponse(
+      res,
+      statusCode.OK,
+      result,
+      "User data fetched successfully"
+    );
+  } catch (error) {
+    next(error);
+  }
 };
 
-export const getUsername = (req, res) => {
-  repo
-    .findByUsername(req.params.username)
-    .then((response) => {
-      if (response) {
-        success(res, 400, response.username + " is already exists!");
-      } else {
-        error(res, 200, "Available");
-      }
-    })
-    .catch((err) => {
-      error(res, 400, err);
-    });
+export const getUsername = async (req, res, next) => {
+  try {
+    const { username } = req.params;
+    const result = await repo.findByUsername(username);
+    if (!result) {
+      return clientResponse(
+        res,
+        statusCode.OK,
+        `${result.username} is available.`,
+        "Username is available"
+      );
+    }
+    throw new AppError(
+      result.username + " is already exists!",
+      statusCode.BAD_REQUEST
+    );
+  } catch (error) {
+    next(error);
+  }
+  // repo
+  //   .findByUsername(req.params.username)
+  //   .then((response) => {
+  //     if (response) {
+  //       success(res, 400, response.username + " is already exists!");
+  //     } else {
+  //       error(res, 200, "Available");
+  //     }
+  //   })
+  //   .catch((err) => {
+  //     error(res, 400, err);
+  //   });
 };
 
-export const getEmail = (req, res) => {
-  repo
-    .findByEmail(req.params.email)
-    .then((response) => {
-      if (response) {
-        success(res, 400, response.email + " is already exists!");
-      } else {
-        error(res, 200, "Available");
-      }
-    })
-    .catch((err) => {
-      error(res, 400, err);
-    });
+export const getEmail = async (req, res) => {
+  try {
+    const { email } = req.params;
+    const result = await repo.findByEmail(email);
+    if (!result) {
+      return clientResponse(
+        res,
+        statusCode.OK,
+        `${result.email} is available.`,
+        "Email is available"
+      );
+    }
+    throw new AppError(
+      result.email + " is already exists!",
+      statusCode.BAD_REQUEST
+    );
+  } catch (error) {
+    next(error);
+  }
+  // repo
+  //   .findByEmail(req.params.email)
+  //   .then((response) => {
+  //     if (response) {
+  //       success(res, 400, response.email + " is already exists!");
+  //     } else {
+  //       error(res, 200, "Available");
+  //     }
+  //   })
+  //   .catch((err) => {
+  //     error(res, 400, err);
+  //   });
 };
 
-export const registerUser = async (req, res) => {
+export const registerUser = async (req, res, next) => {
   try {
     const param = req.body;
 
@@ -93,48 +135,81 @@ export const registerUser = async (req, res) => {
     }
 
     // Call the model function and await its response
-    const response = await service.register(param, req, res);
+    const result = await service.register(param, req, res);
 
     // Send success response
-    return success(res, 200, `User ${response.username} created successfully`);
+    return clientResponse(
+      res,
+      statusCode.CREATED,
+      result,
+      `User ${response.username} created successfully`
+    );
+
+    // return success(res, 200, `User ${response.username} created successfully`);
   } catch (err) {
-    console.error("Error in registerUser controller:", err);
-    return error(res, 400, err.message || "Registration failed");
+    // console.error("Error in registerUser controller:", err);
+    // return error(res, 400, err.message || "Registration failed");
+    next(err);
   }
 };
 
 export const putUser = async (req, res, next) => {
-  const param = req.body;
-  service
-    .updateUser(param, req, res)
-    .then((response) => {
-      clientResponse(
-        res,
-        statusCode.OK,
-        response,
-        "User " + response.username + " updated successfully"
-      );
-    })
-    .catch((err) => {
-      next(err);
-    });
+  try {
+    const param = req.body;
+    // console.log(param);
+    const result = await service.updateUser(param, req, res);
+    return clientResponse(
+      res,
+      statusCode.OK,
+      result,
+      `User ${result.username} updated successfully`
+    );
+  } catch (error) {
+    next(error);
+  }
+  // const param = req.body;
+  // service
+  //   .updateUser(param, req, res)
+  //   .then((response) => {
+  //     clientResponse(
+  //       res,
+  //       statusCode.OK,
+  //       response,
+  //       "User " + response.username + " updated successfully"
+  //     );
+  //   })
+  //   .catch((err) => {
+  //     next(err);
+  //   });
 };
 
-export const changePassword = (req, res, next) => {
-  const param = req.body;
-  service
-    .updatePassword(param, req)
-    .then((response) => {
-      clientResponse(
-        res,
-        statusCode.OK,
-        response,
-        "Password changed successfully"
-      );
-    })
-    .catch((err) => {
-      next(err);
-    });
+export const changePassword = async (req, res, next) => {
+  try {
+    const param = req.body;
+    const result = await service.updatePassword(param, req);
+    return clientResponse(
+      res,
+      statusCode.OK,
+      result,
+      "Password changed successfully"
+    );
+  } catch (error) {
+    next(error);
+  }
+  // const param = req.body;
+  // service
+  //   .updatePassword(param, req)
+  //   .then((response) => {
+  //     clientResponse(
+  //       res,
+  //       statusCode.OK,
+  //       response,
+  //       "Password changed successfully"
+  //     );
+  //   })
+  //   .catch((err) => {
+  //     next(err);
+  //   });
 };
 
 export const loginUser = async (req, res, next) => {

@@ -64,7 +64,7 @@ export class UserService {
             },
           });
 
-          console.log(await newUser);
+          // console.log(await newUser);
           return new User(newUser);
         },
         {
@@ -264,10 +264,11 @@ export class UserService {
 
           // Check if the user existed
           if (!existingUser) {
-            throw new Error("User not found");
+            throw new AppError("User not found", statusCode.NOT_FOUND, null);
           }
 
           const avatar = await upload.uploadFile(req, existingUser.username);
+          console.log(avatar);
 
           // user.update({
           //   avatar: avatar?.status === 200 ? avatar.url : existingUser.avatar,
@@ -304,7 +305,7 @@ export class UserService {
             },
           });
 
-          console.log(await newUser);
+          // console.log(await newUser);
           return new User(newUser);
         },
         {
@@ -316,7 +317,7 @@ export class UserService {
       if (fileName) {
         try {
           const deleteResponse = await upload.deleteFile(fileName);
-          console.log(`Rolled back uploaded file: ${deleteResponse.fileName}`);
+          console.warn(`Rolled back uploaded file: ${deleteResponse.fileName}`);
         } catch (deleteError) {
           console.error("Error rolling back file:", deleteError);
         }

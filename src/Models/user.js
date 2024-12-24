@@ -414,7 +414,7 @@ export class User {
         lastUpdatedDate: new Date(),
       };
 
-      console.log(fullData);
+      // console.log(fullData);
       const validate = this.validate(fullData);
       // Validate and parse input data
       this.generateData(validate, fullData);
@@ -449,7 +449,13 @@ export class User {
   // Method to get data ready for Prisma creation
   toData() {
     const passworded = this.isPassworded();
-    const { createdDate, lastUpdatedDate, objectVersionId, ...prismaInput } = {
+    const {
+      profile,
+      createdDate,
+      lastUpdatedDate,
+      objectVersionId,
+      ...prismaInput
+    } = {
       ...this.#data,
       passworded,
     };
