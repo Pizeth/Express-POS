@@ -38,7 +38,7 @@ export const UserSchema = z.object({
   email: z.string().email("Invalid email format"),
   password: z.string().refine(
     (password) => {
-      console.log(password);
+      // console.log(password);
       // If it's a bcrypt hash, consider it valid
       if (password.startsWith("$2") && password.length >= 60) {
         return true;
@@ -65,7 +65,10 @@ export const UserSchema = z.object({
     .optional(),
   repassword: z.string().nullable().optional(),
   avatar: z.string().nullable().optional(),
-  profile: z.record(z.any()).nullable().optional(),
+  // profile: z.record(z.any()).nullable().optional(),
+  profile: z
+    .union([z.record(z.any()).nullable().optional(), z.literal("")])
+    .optional(),
   // role: z
   //   .enum(["SUPER_ADMIN", "ADMIN", "MANAGER", "CASHIER", "USER"])
   //   .optional()
@@ -107,6 +110,16 @@ export const UserSchema = z.object({
   objectVersionId: z.coerce.number().int().default(1),
   auditTrail: z.array(z.record(z.any()).nullable().optional()).optional(),
 });
+
+// Schema for password matching validation
+const PasswordMatchSchema = UserSchema.extend({
+  password: UserSchema.shape.password,
+  repassword: UserSchema.shape.repassword,
+}).refine(
+  (data) =>
+    !data.password || !data.repassword || data.password === data.repassword,
+  { message: "Passwords must match", path: ["repassword"] }
+);
 
 // Input schema for creation (exclude optional/generated fields)
 export const CreateUserSchema = UserSchema.omit({
@@ -170,15 +183,15 @@ export class User {
       const processedData = {
         ...data,
         // Check if password looks like a bcrypt hash
-        password:
-          data.password &&
-          (data.password.startsWith("$2") || data.password.length >= 60)
-            ? data.password
-            : data.password
-            ? passwordUtils.hash(data.password)
-            : data.passworded
-            ? passwordUtils.hash(process.env.PASSKEY)
-            : undefined,
+        // password:
+        //   data.password &&
+        //   (data.password.startsWith("$2") || data.password.length >= 60)
+        //     ? data.password
+        //     : data.password
+        //     ? passwordUtils.hash(data.password)
+        //     : data.passworded
+        //     ? passwordUtils.hash(process.env.PASSKEY)
+        //     : undefined,
         createdDate: data.createdDate ? new Date(data.createdDate) : new Date(),
         lastUpdatedDate: data.lastUpdatedDate
           ? new Date(data.lastUpdatedDate)
@@ -287,12 +300,22 @@ export class User {
   generateData(status, data) {
     // Status is valid, process the data normally
     if (status.isValid) {
-      console.log("status is valid");
+      // console.log("status is valid");
       // console.log(data);
       this.#data = UserSchema.parse(data);
 
+      const password = this.#data.password;
+
       // Securely store the password
-      this.#password = this.#data.password;
+      // this.#password = this.#data.password;
+      this.#password =
+        password && (password.startsWith("$2") || password.length >= 60)
+          ? password
+          : password
+          ? passwordUtils.hash(password)
+          : // : data.passworded
+            // ? passwordUtils.hash(process.env.PASSKEY)
+            undefined;
 
       // Remove password from the main data object
       this.removeCredential();
@@ -394,6 +417,10 @@ export class User {
       const fullData = data
         ? data
         : { ...this.#data, password: this.#password };
+
+      // UserSchema.superRefine((fullData, ctx) => {
+      //   PasswordMatchSchema.parse(fullData);
+      // });
       UserSchema.parse(fullData);
       return {
         isValid: true,
