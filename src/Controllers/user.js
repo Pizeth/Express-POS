@@ -156,7 +156,8 @@ export const registerUser = async (req, res, next) => {
 export const putUser = async (req, res, next) => {
   try {
     const param = req.body;
-    // console.log(param);
+    console.log("body");
+    console.log(param);
     const result = await service.updateUser(param, req, res);
     return clientResponse(
       res,

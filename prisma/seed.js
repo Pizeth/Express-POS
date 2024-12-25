@@ -4,10 +4,12 @@ import passwordUtils from "../src/Utils/passwordUtils.js";
 import tokenManager from "../src/Utils/tokenManager.js";
 // const { PrismaClient } = require("@prisma/client");
 // const prisma = new PrismaClient();
+const expireRefresh = process.env.EXPIRE_REFRESH || "7d";
 
 async function main() {
   // Generate authentication token
   const token = {
+    userId: 1,
     username: "razeth",
     email: "seth.razeth@gmail.com",
     role: "SUPER_ADMIN",
@@ -40,7 +42,7 @@ async function main() {
       role: "SUPER_ADMIN",
       refreshTokens: {
         create: {
-          token: tokenManager.generateRefreshToken(token),
+          token: tokenManager.generateToken(token, expireRefresh),
           expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
         },
       },

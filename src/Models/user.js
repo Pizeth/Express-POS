@@ -38,6 +38,7 @@ export const UserSchema = z.object({
   email: z.string().email("Invalid email format"),
   password: z.string().refine(
     (password) => {
+      console.log(password);
       // If it's a bcrypt hash, consider it valid
       if (password.startsWith("$2") && password.length >= 60) {
         return true;
@@ -95,13 +96,15 @@ export const UserSchema = z.object({
   createdDate: z
     .date()
     .optional()
-    .default(() => new Date()),
+    .default(() => new Date())
+    .nullable(),
   lastUpdatedBy: z.coerce.number().int(),
   lastUpdatedDate: z
     .date()
     .optional()
-    .default(() => new Date()),
-  objectVersionId: z.number().int().optional().default(1),
+    .default(() => new Date())
+    .nullable(),
+  objectVersionId: z.coerce.number().int().default(1),
   auditTrail: z.array(z.record(z.any()).nullable().optional()).optional(),
 });
 
@@ -180,6 +183,8 @@ export class User {
         lastUpdatedDate: data.lastUpdatedDate
           ? new Date(data.lastUpdatedDate)
           : new Date(),
+        lastLogin: data.lastLogin ? new Date(data.lastLogin) : null,
+        deletedAt: data.deletedAt ? new Date(data.deletedAt) : null,
       };
 
       const validate = this.validate(processedData);
@@ -282,6 +287,8 @@ export class User {
   generateData(status, data) {
     // Status is valid, process the data normally
     if (status.isValid) {
+      console.log("status is valid");
+      // console.log(data);
       this.#data = UserSchema.parse(data);
 
       // Securely store the password
@@ -294,6 +301,7 @@ export class User {
 
     // Update user data: role, avatar, and lastUpdatedBy
     if (this.isUpdateSchema(data)) {
+      console.log("update schema");
       this.#data = UpdateSchema.parse(data);
 
       // Remove password from the main data object
@@ -500,8 +508,8 @@ export default User;
 //     // Enum-like role validation
 //     this.role = VALID_ROLES.includes(data?.role) ? data.role : "USER";
 //     this.createdBy = data.createdBy ? Number(data.createdBy) : null;
-//     this.creationDate = data.creationDate
-//       ? new Date(data.creationDate)
+//     this.createdDate = data.createdDate
+//       ? new Date(data.createdDate)
 //       : new Date();
 //     this.lastUpdatedBy = data.lastUpdatedBy ? Number(data.lastUpdatedBy) : null;
 //     this.lastUpdatedDatee = data.lastUpdatedDatee
@@ -560,7 +568,7 @@ export default User;
 //     const { password, ...safeUser } = this;
 //     return {
 //       ...safeUser,
-//       creationDate: this.creationDate.toISOString(),
+//       createdDate: this.createdDate.toISOString(),
 //       lastUpdatedDatee: this.lastUpdatedDatee.toISOString(),
 //     };
 //   }

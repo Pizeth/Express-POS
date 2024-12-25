@@ -4,7 +4,7 @@ import User from "../Models/user.js";
 import UserRepo from "../Repositories/user.js";
 import upload from "../Services/fileUpload.js";
 import { logError } from "../Utils/form.js";
-import { AppError, ErrorHandler } from "../Utils/responseHandler.js";
+import AppError from "../Utils/responseHandler.js";
 import loginRepo from "../Repositories/loginAttempt.js";
 import tokenManager from "../Utils/tokenManager.js";
 import passwordUtils from "../Utils/passwordUtils.js";
@@ -16,6 +16,8 @@ export class UserService {
     let fileName = "";
     try {
       // Validate user data before processing
+      data.lastUpdatedBy = data.createdBy;
+      console.log(data);
       const user = new User(data);
       const validationResult = user.validate();
 
@@ -156,7 +158,7 @@ export class UserService {
       const payload = tokenManager.generatePayload(user, req);
 
       // Generate authentication token
-      const token = tokenManager.generateAccessToken(payload);
+      const token = tokenManager.generateToken(payload);
 
       // Save refresh token to database
       const refreshToken = await tokenManager.generateRefreshToken(payload);
@@ -241,7 +243,7 @@ export class UserService {
       // Generate payload to use for create token
       const payload = tokenManager.generatePayload(storedToken.user, req);
       // Generate new access token
-      return tokenManager.generateAccessToken(payload);
+      return tokenManager.generateToken(payload);
     } catch (error) {
       // Remove invalid refresh token
       await tokenManager.remove(refreshToken);
@@ -268,7 +270,6 @@ export class UserService {
           }
 
           const avatar = await upload.uploadFile(req, existingUser.username);
-          console.log(avatar);
 
           // user.update({
           //   avatar: avatar?.status === 200 ? avatar.url : existingUser.avatar,

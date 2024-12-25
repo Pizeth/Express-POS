@@ -1,9 +1,11 @@
 import jwt from "jsonwebtoken";
 import TokenRepo from "../Repositories/refreshToken.js";
-import {AppError} from "../Utils/responseHandler.js";
+import { AppError } from "../Utils/responseHandler.js";
 import statusCode from "http-status-codes";
 const secretKey = process.env.SECRET_KEY || 270400;
 const refreshTokenKey = process.env.REFRESH_TOKEN_KEY || 200794;
+const expireIn = process.env.EXPIRE_IN || "900s";
+const expireRefresh = process.env.EXPIRE_REFRESH || "7d";
 
 // Utility for authentication token generation
 export class TokenManager {
@@ -17,13 +19,14 @@ export class TokenManager {
     };
   }
   // Generate tokens
-  static generateAccessToken(payload) {
-    return jwt.sign(payload, secretKey, { expiresIn: "900s" });
+  static generateToken(payload, time = expireIn) {
+    return jwt.sign(payload, secretKey, { expiresIn: time });
   }
 
   // Generate refresh tokens
   static async generateRefreshToken(payload) {
-    const token = jwt.sign(payload, refreshTokenKey, { expiresIn: "7d" });
+    // const token = jwt.sign(payload, refreshTokenKey, { expiresIn: "7d" });
+    const token = this.generateToken(payload, expireRefresh);
     try {
       return TokenRepo.createRefreshToken(token, payload.id);
     } catch (error) {
@@ -96,7 +99,11 @@ export class TokenManager {
           ip: req.ip, // Assuming you have a method to get current IP
         });
         // throw new Error("Authentication failed: Invalid token signature");
-        throw new AppError("Authentication failed: Invalid token signature", statusCode.UNAUTHORIZED, error);
+        throw new AppError(
+          "Authentication failed: Invalid token signature",
+          statusCode.UNAUTHORIZED,
+          error
+        );
 
         // // Log the error for security monitoring
         // this.logger.security("Token verification failed", {
@@ -113,7 +120,11 @@ export class TokenManager {
           error: error.message,
           ip: req.ip,
         });
-        throw new AppError("Authentication failed: Token has expired", statusCode.UNAUTHORIZED, error);
+        throw new AppError(
+          "Authentication failed: Token has expired",
+          statusCode.UNAUTHORIZED,
+          error
+        );
         // throw new Error("Authentication failed: Token has expired");
       }
 
