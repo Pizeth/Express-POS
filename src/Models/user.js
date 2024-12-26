@@ -377,12 +377,23 @@ export class User {
       return;
     }
 
+    const errorMessage =
+      status.errors && status.errors.length > 0 && status.errors[0].message
+        ? status.errors[0].message
+        : "Failed to generate user's data!";
+
     // If no valid scenarios match, throw an error
     throw new AppError(
-      "Failed to generate user's data!",
+      errorMessage,
       statusCode.EXPECTATION_FAILED,
       status.errors
     );
+
+    // throw new AppError(
+    //   "Failed to generate user's data!",
+    //   statusCode.EXPECTATION_FAILED,
+    //   status.errors
+    // );
   }
 
   // Secure method to check password without exposing it

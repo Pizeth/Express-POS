@@ -17,7 +17,7 @@ export class UserService {
     try {
       // Validate user data before processing
       data.lastUpdatedBy = data.createdBy;
-      console.log(data);
+      // console.log(data);
       const user = new User(data);
       const validationResult = user.validate();
 

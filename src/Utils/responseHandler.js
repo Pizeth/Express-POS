@@ -48,10 +48,10 @@ export const clientResponse = (res, code, data, message = "Success") => {
 export class ErrorHandler {
   static handle(context, err, req, res, next) {
     const code = err.statusCode || 500;
-
     // Detailed error response
     clientResponse(res, code, err, err.message);
 
+    console.log("before sending error response");
     // Optional: Log error to external service
     this.logError(context, err, req);
   }
