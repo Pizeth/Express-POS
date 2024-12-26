@@ -64,7 +64,7 @@ export const getUsername = async (req, res, next) => {
       return clientResponse(
         res,
         statusCode.OK,
-        `${result.username} is available.`,
+        `${username} is available.`,
         "Username is available"
       );
     }
@@ -97,7 +97,7 @@ export const getEmail = async (req, res) => {
       return clientResponse(
         res,
         statusCode.OK,
-        `${result.email} is available.`,
+        `${email} is available.`,
         "Email is available"
       );
     }
