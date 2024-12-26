@@ -302,6 +302,41 @@ export class User {
     if (status.isValid) {
       // console.log("status is valid");
       // console.log(data);
+
+      if (
+        data.repassword &&
+        data.newPassword &&
+        data.repassword !== data.newPassword
+      ) {
+        throw new AppError(
+          "Passwords do not match!",
+          statusCode.EXPECTATION_FAILED,
+          status.errors
+        );
+      }
+      if (
+        data.repassword &&
+        !data.newPassword &&
+        data.repassword !== data.password
+      ) {
+        throw new AppError(
+          "Passwords do not match!",
+          statusCode.EXPECTATION_FAILED,
+          status.errors
+        );
+      }
+
+      // const PasswordMatchSchema = UserSchema.extend({
+      //   password: UserSchema.shape.password,
+      //   repassword: UserSchema.shape.repassword,
+      // }).refine(
+      //   (data) =>
+      //     !data.password ||
+      //     !data.repassword ||
+      //     data.password === data.repassword,
+      //   { message: "Passwords must match", path: ["repassword"] }
+      // );
+
       this.#data = UserSchema.parse(data);
 
       const password = this.#data.password;
