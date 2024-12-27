@@ -40,7 +40,9 @@ export const clientResponse = (res, code, data, message = "Success") => {
     status: statusCode.getStatusText(code),
     message: message,
     data: data,
-    ...(process.env.NODE_ENV === "DEVELOPMENT" && { stack: data.stack }),
+    ...(process.env.NODE_ENV === "DEVELOPMENT" && {
+      stack: data?.stack ? data.stack : null,
+    }),
   };
   res.status(code).json(form);
 };

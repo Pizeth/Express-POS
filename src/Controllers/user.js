@@ -64,14 +64,22 @@ export const getUsername = async (req, res, next) => {
       return clientResponse(
         res,
         statusCode.OK,
-        `${username} is available.`,
-        "Username is available"
+        result,
+        `${username} is available.`
+        // "Username is available"
       );
     }
-    throw new AppError(
-      result.username + " is already exists!",
-      statusCode.BAD_REQUEST
+    return clientResponse(
+      res,
+      statusCode.ACCEPTED,
+      result,
+      `${username} is already exists!.`
+      // "Username is available"
     );
+    // throw new AppError(
+    //   result.username + " is already exists!",
+    //   statusCode.BAD_REQUEST
+    // );
   } catch (error) {
     next(error);
   }
@@ -89,7 +97,7 @@ export const getUsername = async (req, res, next) => {
   //   });
 };
 
-export const getEmail = async (req, res) => {
+export const getEmail = async (req, res, next) => {
   try {
     const { email } = req.params;
     const result = await repo.findByEmail(email);
@@ -97,14 +105,21 @@ export const getEmail = async (req, res) => {
       return clientResponse(
         res,
         statusCode.OK,
-        `${email} is available.`,
-        "Email is available"
+        result,
+        `${email} is available.`
       );
     }
-    throw new AppError(
-      result.email + " is already exists!",
-      statusCode.BAD_REQUEST
+    return clientResponse(
+      res,
+      statusCode.ACCEPTED,
+      result,
+      `${email} is already exists!.`
+      // "Username is available"
     );
+    // throw new AppError(
+    //   result.email + " is already exists!",
+    //   statusCode.BAD_REQUEST
+    // );
   } catch (error) {
     next(error);
   }
