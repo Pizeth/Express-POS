@@ -56,86 +56,86 @@ export const getUserId = async (req, res, next) => {
   }
 };
 
-export const getUsername = async (req, res, next) => {
-  try {
-    const { username } = req.params;
-    const result = await repo.findByUsername(username);
-    if (!result) {
-      return clientResponse(
-        res,
-        statusCode.OK,
-        result,
-        `${username} is available.`
-        // "Username is available"
-      );
-    }
-    return clientResponse(
-      res,
-      statusCode.ACCEPTED,
-      result,
-      `${username} is already exists!.`
-      // "Username is available"
-    );
-    // throw new AppError(
-    //   result.username + " is already exists!",
-    //   statusCode.BAD_REQUEST
-    // );
-  } catch (error) {
-    next(error);
-  }
-  // repo
-  //   .findByUsername(req.params.username)
-  //   .then((response) => {
-  //     if (response) {
-  //       success(res, 400, response.username + " is already exists!");
-  //     } else {
-  //       error(res, 200, "Available");
-  //     }
-  //   })
-  //   .catch((err) => {
-  //     error(res, 400, err);
-  //   });
-};
+// export const getUsername = async (req, res, next) => {
+//   try {
+//     const { username } = req.params;
+//     const result = await repo.findByUsername(username);
+//     if (!result) {
+//       return clientResponse(
+//         res,
+//         statusCode.OK,
+//         result,
+//         `${username} is available.`
+//         // "Username is available"
+//       );
+//     }
+//     return clientResponse(
+//       res,
+//       statusCode.ACCEPTED,
+//       result,
+//       `${username} is already exists!.`
+//       // "Username is available"
+//     );
+//     // throw new AppError(
+//     //   result.username + " is already exists!",
+//     //   statusCode.BAD_REQUEST
+//     // );
+//   } catch (error) {
+//     next(error);
+//   }
+//   // repo
+//   //   .findByUsername(req.params.username)
+//   //   .then((response) => {
+//   //     if (response) {
+//   //       success(res, 400, response.username + " is already exists!");
+//   //     } else {
+//   //       error(res, 200, "Available");
+//   //     }
+//   //   })
+//   //   .catch((err) => {
+//   //     error(res, 400, err);
+//   //   });
+// };
 
-export const getEmail = async (req, res, next) => {
-  try {
-    const { email } = req.params;
-    const result = await repo.findByEmail(email);
-    if (!result) {
-      return clientResponse(
-        res,
-        statusCode.OK,
-        result,
-        `${email} is available.`
-      );
-    }
-    return clientResponse(
-      res,
-      statusCode.ACCEPTED,
-      result,
-      `${email} is already exists!.`
-      // "Username is available"
-    );
-    // throw new AppError(
-    //   result.email + " is already exists!",
-    //   statusCode.BAD_REQUEST
-    // );
-  } catch (error) {
-    next(error);
-  }
-  // repo
-  //   .findByEmail(req.params.email)
-  //   .then((response) => {
-  //     if (response) {
-  //       success(res, 400, response.email + " is already exists!");
-  //     } else {
-  //       error(res, 200, "Available");
-  //     }
-  //   })
-  //   .catch((err) => {
-  //     error(res, 400, err);
-  //   });
-};
+// export const getEmail = async (req, res, next) => {
+//   try {
+//     const { email } = req.params;
+//     const result = await repo.findByEmail(email);
+//     if (!result) {
+//       return clientResponse(
+//         res,
+//         statusCode.OK,
+//         result,
+//         `${email} is available.`
+//       );
+//     }
+//     return clientResponse(
+//       res,
+//       statusCode.ACCEPTED,
+//       result,
+//       `${email} is already exists!.`
+//       // "Username is available"
+//     );
+//     // throw new AppError(
+//     //   result.email + " is already exists!",
+//     //   statusCode.BAD_REQUEST
+//     // );
+//   } catch (error) {
+//     next(error);
+//   }
+//   // repo
+//   //   .findByEmail(req.params.email)
+//   //   .then((response) => {
+//   //     if (response) {
+//   //       success(res, 400, response.email + " is already exists!");
+//   //     } else {
+//   //       error(res, 200, "Available");
+//   //     }
+//   //   })
+//   //   .catch((err) => {
+//   //     error(res, 400, err);
+//   //   });
+// };
 
 export const registerUser = async (req, res, next) => {
   try {
