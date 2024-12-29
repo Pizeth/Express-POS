@@ -49,6 +49,7 @@ import stockRoutes from "./stock.js";
 import profileRoutes from "./profile.js";
 import userRoutes from "./user.js";
 import uploadRoutes from "./fileUpload.js";
+import validateRoutes from "./validation.js";
 // import { error } from "../Utils/form.js";
 import { authMiddleware } from "../Middlewares/authMiddleware.js";
 
@@ -86,5 +87,6 @@ Router.use("/stock", authMiddleware, stockRoutes);
 Router.use("/profile", authMiddleware, profileRoutes);
 Router.use("/user", userRoutes);
 Router.use("/upload", uploadRoutes);
+Router.use("/validate", validateRoutes);
 
 export default Router;
