@@ -368,8 +368,6 @@ export const logout = (req, res) => {
 export default {
   getUser,
   getUserId,
-  getUsername,
-  getEmail,
   registerUser,
   putUser,
   loginUser,

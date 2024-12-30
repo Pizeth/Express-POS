@@ -53,7 +53,6 @@ export class ErrorHandler {
     // Detailed error response
     clientResponse(res, code, err, err.message);
 
-    console.log("before sending error response");
     // Optional: Log error to external service
     this.logError(context, err, req);
   }
