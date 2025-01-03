@@ -89,9 +89,9 @@ model User {
   // Audit and Tracking
   deletedAt       DateTime?         @map("deleted_at")
   createdBy       Int               @map("created_by")
-  createdDate    DateTime          @default(now()) @db.Timestamp(6) @map("created_date")         
+  createdDate     DateTime          @default(now()) @db.Timestamp(6) @map("created_date")         
   lastUpdatedBy   Int               @map("last_updated_by")
-  lastUpdatedDate  DateTime          @default(now()) @db.Timestamp(6) @updatedAt @map("last_updated_date")
+  lastUpdatedDate DateTime          @default(now()) @db.Timestamp(6) @updatedAt @map("last_updated_date")
   objectVersionId Int               @default(1) @map("object_version_id")
 
   auditTrail      AuditTrail[]     
@@ -114,12 +114,14 @@ model Profile {
   bio             String?       
   userId          Int               @unique @map("user_id")
   Cashier         Cashier?
+
+  // Tracking
   enabledFlag     Boolean           @default(true) @map("enabled_flag")
   holdFlag        String?           @db.VarChar(1) @map("hold_flag")
   createdBy       Int               @map("created_by")
-  createdDate    DateTime          @default(now()) @db.Timestamp(6) @map("created_date")         
+  createdDate     DateTime          @default(now()) @db.Timestamp(6) @map("created_date")         
   lastUpdatedBy   Int               @map("last_updated_by")
-  lastUpdatedDate  DateTime          @default(now()) @db.Timestamp(6) @updatedAt @map("last_updated_date")
+  lastUpdatedDate DateTime          @default(now()) @db.Timestamp(6) @updatedAt @map("last_updated_date")
   objectVersionId Int               @default(1) @map("object_version_id")
 
   // Relationships
@@ -133,16 +135,16 @@ model Cashier {
   cashierNumber   String            @unique @default(uuid()) @map("cashier_number")
   cashierType     CashierType       @map("cashier_type")
   description     String?           @db.VarChar(255)
-  // loginUser       String?           @unique @db.VarChar(20)
-  // loginPassword   String?           @db.VarChar(100)
+
+  // Tracking
   enabledFlag     Boolean           @default(true) @map("enabled_flag")
   holdFlag        String?           @db.VarChar(1) @map("hold_flag")
-  // startDate       DateTime
-  // endDate         DateTime?
+  startDate       DateTime          @map("start_date")
+  endDate         DateTime?         @map("end_date")
   createdBy       Int               @map("created_by")
-  createdDate    DateTime          @default(now()) @db.Timestamp(6) @map("created_date")         
+  createdDate     DateTime          @default(now()) @db.Timestamp(6) @map("created_date")         
   lastUpdatedBy   Int               @map("last_updated_by")
-  lastUpdatedDate  DateTime          @default(now()) @db.Timestamp(6) @updatedAt @map("last_updated_date")
+  lastUpdatedDate DateTime          @default(now()) @db.Timestamp(6) @updatedAt @map("last_updated_date")
   objectVersionId Int               @default(1) @map("object_version_id")
 
   // Relationships
@@ -151,17 +153,38 @@ model Cashier {
   @@map("cashiers")    
 } 
 
+model Supplier {
+  id              Int               @id @default(autoincrement())
+  name            String            @unique @db.VarChar(255)
+  email           String?           @unique @db.VarChar(255)
+  phone           String            @unique @db.VarChar(255)
+  address         String?           @db.VarChar(255)
+  description     String?           @db.VarChar(255)
+
+  // Tracking
+  enabledFlag     Boolean           @default(true) @map("enabled_flag")
+  createdBy       Int               @map("created_by")
+  createdDate     DateTime          @default(now()) @db.Timestamp(6) @map("created_date")
+  lastUpdatedBy   Int               @map("last_updated_by")
+  lastUpdatedDate DateTime          @default(now()) @db.Timestamp(6) @updatedAt @map("last_updated_date")
+  objectVersionId Int               @default(1) @map("object_version_id")
+
+  @@map("suppliers")
+}
+
 model Category {
   id              Int               @id @default(autoincrement()) @map("short_name")
   shortName       String            @unique @db.VarChar(30)
   name            String            @unique @db.VarChar(200)
   description     String?           @db.VarChar(255)
+
+  // Tracking
   image           String?           @db.VarChar(255)
   enabledFlag     Boolean           @default(true) @map("enabled_flag")
   createdBy       Int               @map("created_by")
-  createdDate    DateTime          @default(now()) @db.Timestamp(6) @map("created_date")         
+  createdDate     DateTime          @default(now()) @db.Timestamp(6) @map("created_date")         
   lastUpdatedBy   Int               @map("last_updated_by")
-  lastUpdatedDate  DateTime          @default(now()) @db.Timestamp(6) @updatedAt @map("last_updated_date")
+  lastUpdatedDate DateTime          @default(now()) @db.Timestamp(6) @updatedAt @map("last_updated_date")
   objectVersionId Int               @default(1) @map("object_version_id")
 
   // Relationships
@@ -176,11 +199,13 @@ model SubCategory {
   name            String            @unique @db.VarChar(255)
   description     String?           @db.VarChar(255)
   image           String?           @db.VarChar(255)
+
+  // Tracking
   enabledFlag     Boolean           @default(true) @map("enabled_flag")
   createdBy       Int               @map("created_by")
-  createdDate    DateTime          @default(now()) @db.Timestamp(6) @map("created_date")         
+  createdDate     DateTime          @default(now()) @db.Timestamp(6) @map("created_date")         
   lastUpdatedBy   Int               @map("last_updated_by")
-  lastUpdatedDate  DateTime          @default(now()) @db.Timestamp(6) @updatedAt @map("last_updated_date")
+  lastUpdatedDate DateTime          @default(now()) @db.Timestamp(6) @updatedAt @map("last_updated_date")
   objectVersionId Int               @default(1) @map("object_version_id")
 
   // Relationships
@@ -194,11 +219,13 @@ model Manufacturer {
   name            String            @db.VarChar(255)
   image           String?           @db.VarChar(255)
   phone           String?           @db.VarChar(255)
+
+  // Tracking
   enabledFlag     Boolean           @default(true) @map("enabled_flag")
   createdBy       Int               @map("created_by")
-  createdDate    DateTime          @default(now()) @db.Timestamp(6) @map("created_date")         
+  createdDate     DateTime          @default(now()) @db.Timestamp(6) @map("created_date")         
   lastUpdatedBy   Int               @map("last_updated_by")
-  lastUpdatedDate  DateTime          @default(now()) @db.Timestamp(6) @updatedAt @map("last_updated_date")
+  lastUpdatedDate DateTime          @default(now()) @db.Timestamp(6) @updatedAt @map("last_updated_date")
   objectVersionId Int               @default(1) @map("object_version_id")
 
   // Relationships
@@ -210,11 +237,13 @@ model ProductType {
   id              Int               @id @default(autoincrement())
   name            String            @db.VarChar(255)
   image           String?           @db.VarChar(255)
+
+  // Tracking
   enabledFlag     Boolean           @default(true) @map("enabled_flag")
   createdBy       Int               @map("created_by")
-  createdDate    DateTime          @default(now()) @db.Timestamp(6) @map("created_date")         
+  createdDate     DateTime          @default(now()) @db.Timestamp(6) @map("created_date")         
   lastUpdatedBy   Int               @map("last_updated_by")
-  lastUpdatedDate  DateTime          @default(now()) @db.Timestamp(6) @updatedAt @map("last_updated_date")
+  lastUpdatedDate DateTime          @default(now()) @db.Timestamp(6) @updatedAt @map("last_updated_date")
   objectVersionId Int               @default(1) @map("object_version_id")
 
   // Relationships
@@ -261,9 +290,9 @@ model ProductUnit {
   // Tracking
   enabledFlag     Boolean           @default(true) @map("enabled_flag")
   createdBy       Int               @map("created_by")
-  createdDate    DateTime          @default(now()) @db.Timestamp(6) @map("created_date")         
+  createdDate     DateTime          @default(now()) @db.Timestamp(6) @map("created_date")         
   lastUpdatedBy   Int               @map("last_updated_by")
-  lastUpdatedDate  DateTime          @default(now()) @db.Timestamp(6) @updatedAt @map("last_updated_date")
+  lastUpdatedDate DateTime          @default(now()) @db.Timestamp(6) @updatedAt @map("last_updated_date")
   objectVersionId Int               @default(1) @map("object_version_id")
 
   // Inverse relations
@@ -286,9 +315,9 @@ model UnitHierarchy {
   // Tracking
   enabledFlag     Boolean           @default(true) @map("enabled_flag")
   createdBy       Int               @map("created_by")
-  createdDate    DateTime          @default(now()) @db.Timestamp(6) @map("created_date")         
+  createdDate     DateTime          @default(now()) @db.Timestamp(6) @map("created_date")         
   lastUpdatedBy   Int               @map("last_updated_by")
-  lastUpdatedDate  DateTime          @default(now()) @db.Timestamp(6) @updatedAt @map("last_updated_date")
+  lastUpdatedDate DateTime          @default(now()) @db.Timestamp(6) @updatedAt @map("last_updated_date")
   objectVersionId Int 
   
   // Relations
@@ -305,6 +334,7 @@ model Product {
   subCategoryId   Int               @map("sub_category_id")
   manufacturerId  Int               @map("manufacturer_id")
   productTypeId   Int               @map("product_type_id")
+  cocktailId      Int?              @map("cocktail_id")
   productCode     String?           @unique @db.VarChar(30) @map("product_code")
   name            String            @unique @db.VarChar(200)
   shortName       String            @unique @db.VarChar(200) @map("short_name")
@@ -321,9 +351,9 @@ model Product {
   // Additional tracking      
   enabledFlag     Boolean           @default(true) @map("enabled_flag")
   createdBy       Int               @map("created_by")
-  createdDate    DateTime          @default(now()) @db.Timestamp(6) @map("created_date")         
+  createdDate     DateTime          @default(now()) @db.Timestamp(6) @map("created_date")         
   lastUpdatedBy   Int               @map("last_updated_by")
-  lastUpdatedDate  DateTime          @default(now()) @db.Timestamp(6) @updatedAt @map("last_updated_date")
+  lastUpdatedDate DateTime          @default(now()) @db.Timestamp(6) @updatedAt @map("last_updated_date")
   objectVersionId Int               @default(1) @map("object_version_id")
   
   // Relationships
@@ -340,6 +370,23 @@ model Product {
   stocks          Stock[]
   
   @@map("products")
+}
+
+model Cocktail {
+  id              Int               @id @default(autoincrement())
+  cocktailCode    String?           @unique @db.VarChar(30) @map("cocktail_code")
+  name            String            @unique @db.VarChar(200)
+  shortName       String            @unique @db.VarChar(200) @map("short_name")
+  description     String?           @db.VarChar(500) @map("description")   
+  image           String?           @db.VarChar(255)
+
+  // Tracking
+  enabledFlag     Boolean           @default(true) @map("enabled_flag")
+  createdBy       Int               @map("created_by")
+  createdDate     DateTime          @default(now()) @db.Timestamp(6) @map("created_date")         
+  lastUpdatedBy   Int               @map("last_updated_by")
+  lastUpdatedDate DateTime          @default(now()) @db.Timestamp(6) @updatedAt @map("last_updated_date")
+  objectVersionId Int               @default(1) @map("object_version_id")
 }
 
 model Stock {
@@ -360,9 +407,9 @@ model Stock {
   // Tracking 
   enabledFlag     Boolean           @default(true) @map("enabled_flag")
   createdBy       Int               @map("created_by")
-  createdDate    DateTime          @default(now()) @db.Timestamp(6) @map("created_date")         
+  createdDate     DateTime          @default(now()) @db.Timestamp(6) @map("created_date")         
   lastUpdatedBy   Int               @map("last_updated_by")
-  lastUpdatedDate  DateTime          @default(now()) @db.Timestamp(6) @updatedAt @map("last_updated_date")
+  lastUpdatedDate DateTime          @default(now()) @db.Timestamp(6) @updatedAt @map("last_updated_date")
   objectVersionId Int               @default(1) @map("object_version_id")
   
   // Relationships
@@ -469,11 +516,13 @@ model PromoDetail {
   id              Int               @id @default(autoincrement())
   productId       Int               @map("product_id")
   promotionId     Int               @map("promotion_id")
+
+  // Tracking
   enabledFlag     Boolean           @default(true) @map("enabled_flag")
   createdBy       Int               @map("created_by")
-  createdDate    DateTime          @default(now()) @db.Timestamp(6) @map("created_date")         
+  createdDate     DateTime          @default(now()) @db.Timestamp(6) @map("created_date")         
   lastUpdatedBy   Int               @map("last_updated_by")
-  lastUpdatedDate  DateTime          @default(now()) @db.Timestamp(6) @updatedAt @map("last_updated_date")
+  lastUpdatedDate DateTime          @default(now()) @db.Timestamp(6) @updatedAt @map("last_updated_date")
   objectVersionId Int               @default(1) @map("object_version_id")
 
   // Relationships
@@ -487,11 +536,13 @@ model Promotion {
   promoCode       String            @db.VarChar(70) @map("promo_code")
   name            String            @db.VarChar(255)
   description     String?           @db.VarChar(255)
+
+  // Tracking
   enabledFlag     Boolean           @default(true) @map("enabled_flag")
   createdBy       Int               @map("created_by")
-  createdDate    DateTime          @default(now()) @db.Timestamp(6) @map("created_date")         
+  createdDate     DateTime          @default(now()) @db.Timestamp(6) @map("created_date")         
   lastUpdatedBy   Int               @map("last_updated_by")
-  lastUpdatedDate  DateTime          @default(now()) @db.Timestamp(6) @updatedAt @map("last_updated_date")
+  lastUpdatedDate DateTime          @default(now()) @db.Timestamp(6) @updatedAt @map("last_updated_date")
   objectVersionId Int               @default(1) @map("object_version_id")
 
   // Relationships
@@ -508,14 +559,18 @@ model ProductTransaction {
   description     String?           @db.VarChar(255)
   type            String            @db.VarChar(1)
   quantity        Int?        
+
+  // Transaction Tracking
   cancelFlag      String?           @db.VarChar(1) @map("cancel_flag")
   canceledBy      Int?              @map("canceled_by")
   cancelReason    String?           @db.VarChar(1000) @map("cancel_reason")
+
+  // Additional Tracking
   enabledFlag     Boolean           @default(true) @map("enabled_flag")
   createdBy       Int               @map("created_by")
-  createdDate    DateTime          @default(now()) @db.Timestamp(6) @map("created_date")         
+  createdDate     DateTime          @default(now()) @db.Timestamp(6) @map("created_date")         
   lastUpdatedBy   Int               @map("last_updated_by")
-  lastUpdatedDate  DateTime          @default(now()) @db.Timestamp(6) @updatedAt @map("last_updated_date")
+  lastUpdatedDate DateTime          @default(now()) @db.Timestamp(6) @updatedAt @map("last_updated_date")
   objectVersionId Int               @default(1) @map("object_version_id")
 
   // Relationships
@@ -527,19 +582,21 @@ model ProductTransaction {
 model Warehouse {
   id              Int               @id @default(autoincrement())
   branchId        Int               @map("branch_id")
-  // parentId        Int?        
+  parentId        Int?        
   shortName       String            @unique @db.VarChar(30) @map("short_name")
   name            String            @unique @db.VarChar(255)
+
+  // Tracking
   description     String?           @db.VarChar(255)
   enabledFlag     Boolean           @default(true) @map("enabled_flag")
   createdBy       Int               @map("created_by")
-  createdDate    DateTime          @default(now()) @db.Timestamp(6) @map("created_date")         
+  createdDate     DateTime          @default(now()) @db.Timestamp(6) @map("created_date")         
   lastUpdatedBy   Int               @map("last_updated_by")
-  lastUpdatedDate  DateTime          @default(now()) @db.Timestamp(6) @updatedAt @map("last_updated_date")
+  lastUpdatedDate DateTime          @default(now()) @db.Timestamp(6) @updatedAt @map("last_updated_date")
   objectVersionId Int               @default(1) @map("object_version_id")
 
   // Relationships
-  branch          StoreBranch         @relation(fields: [branchId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  branch          StoreBranch       @relation(fields: [branchId], references: [id], onDelete: NoAction, onUpdate: NoAction)
   transactions    ProductTransaction[]
   @@map("warehouses")
 }
@@ -550,11 +607,13 @@ model Store {
   shortName       String            @unique @db.VarChar(30) @map("short_name")
   name            String            @unique @db.VarChar(200)
   description     String?           @db.VarChar(255)
+
+  // Tracking
   enabledFlag     Boolean           @default(true) @map("enabled_flag")
   createdBy       Int               @map("created_by")
-  createdDate    DateTime          @default(now()) @db.Timestamp(6) @map("created_date")         
+  createdDate     DateTime          @default(now()) @db.Timestamp(6) @map("created_date")         
   lastUpdatedBy   Int               @map("last_updated_by")
-  lastUpdatedDate  DateTime          @default(now()) @db.Timestamp(6) @updatedAt @map("last_updated_date")
+  lastUpdatedDate DateTime          @default(now()) @db.Timestamp(6) @updatedAt @map("last_updated_date")
   objectVersionId Int               @default(1) @map("object_version_id")
 
   branches        StoreBranch[]
@@ -569,11 +628,13 @@ model StoreBranch {
   description     String?           @db.VarChar(255)
   parentId        Int?              @map("parent_id")
   managerId       Int?              @map("manager_id")
+
+   // Tracking
   enabledFlag     Boolean           @default(true) @map("enabled_flag")
   createdBy       Int               @map("created_by")
-  createdDate    DateTime          @default(now()) @db.Timestamp(6) @map("created_date")         
+  createdDate     DateTime          @default(now()) @db.Timestamp(6) @map("created_date")         
   lastUpdatedBy   Int               @map("last_updated_by")
-  lastUpdatedDate  DateTime          @default(now()) @db.Timestamp(6) @updatedAt @map("last_updated_date")
+  lastUpdatedDate DateTime          @default(now()) @db.Timestamp(6) @updatedAt @map("last_updated_date")
   objectVersionId Int               @default(1) @map("object_version_id")
 
   // Relationships      
@@ -590,26 +651,28 @@ model Order {
   id              Int               @id @default(autoincrement())
   branchId        Int               @map("branch_id")
   cashierId       Int               @map("cashier_id")
-  // customerId      Int       
+  customerId      Int       
+
+  // Order Tracking
   orderType       String            @db.VarChar(1) @map("order_type")
   orderNumber     String            @unique @db.VarChar(30) @map("order_number")
   orderDate       DateTime          @map("order_date")
   status          String            @db.VarChar(30)
   description     String?           @db.VarChar(255)
   holdFlag        String?           @db.VarChar(1) @map("hold_flag")
-  // giftwrapFlag    String?           @db.VarChar(1)
-  // giftwrapMessage String?           @db.VarChar(255)
+
+  // Additional Tracking
   enabledFlag     Boolean           @default(true) @map("enabled_flag")
   createdBy       Int               @map("created_by")
-  createdDate    DateTime          @default(now()) @db.Timestamp(6) @map("created_date")         
+  createdDate     DateTime          @default(now()) @db.Timestamp(6) @map("created_date")         
   lastUpdatedBy   Int               @map("last_updated_by")
-  lastUpdatedDate  DateTime          @default(now()) @db.Timestamp(6) @updatedAt @map("last_updated_date")
+  lastUpdatedDate DateTime                  @default(now()) @db.Timestamp(6) @updatedAt @map("last_updated_date")
   objectVersionId Int               @default(1) @map("object_version_id")
 
   // Relationships
   branch          StoreBranch       @relation(fields: [branchId], references: [id], onDelete: NoAction, onUpdate: NoAction)
   cashier         Cashier           @relation(fields: [cashierId], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  // customer        Customer    @relation(fields: [customerId], references: [id])
+  customer        Customer          @relation(fields: [customerId], references: [id])
   orderLines      OrderLine[]
   invoices        Invoice[]
   @@map("orders")
@@ -626,14 +689,18 @@ model OrderLine {
   quantity        Int?              
   amount          Decimal?          @db.Decimal(7, 3)
   description     String?           @db.VarChar(255)
+
+  //Cancel Tracking
   cancelFlag      String?           @db.VarChar(1) @map("cancel_flag")
   canceledBy      Int?              @map("canceled_by")
-  cancelReason    String?           @db.VarChar(1000) @map("cancel_reason")      
+  cancelReason    String?           @db.VarChar(1000) @map("cancel_reason") 
+
+  // Tracking     
   enabledFlag     Boolean           @default(true) @map("enabled_flag")
   createdBy       Int               @map("created_by")
-  createdDate    DateTime          @default(now()) @db.Timestamp(6) @map("created_date")         
+  createdDate     DateTime          @default(now()) @db.Timestamp(6) @map("created_date")         
   lastUpdatedBy   Int               @map("last_updated_by")
-  lastUpdatedDate  DateTime          @default(now()) @db.Timestamp(6) @updatedAt @map("last_updated_date")
+  lastUpdatedDate DateTime          @default(now()) @db.Timestamp(6) @updatedAt @map("last_updated_date")
   objectVersionId Int               @default(1) @map("object_version_id")
 
   // Relationships
@@ -653,11 +720,13 @@ model Payment {
   paymentCurrency String            @db.VarChar(3) @map("payment_currency")
   amount          Decimal           @db.Decimal(7, 3)
   status          String            @db.VarChar(1)
+
+  // Tracking
   enabledFlag     Boolean           @default(true) @map("enabled_flag")
   createdBy       Int               @map("created_by")
-  createdDate    DateTime          @default(now()) @db.Timestamp(6) @map("created_date")         
+  createdDate     DateTime          @default(now()) @db.Timestamp(6) @map("created_date")         
   lastUpdatedBy   Int               @map("last_updated_by")
-  lastUpdatedDate  DateTime          @default(now()) @db.Timestamp(6) @updatedAt @map("last_updated_date")
+  lastUpdatedDate DateTime          @default(now()) @db.Timestamp(6) @updatedAt @map("last_updated_date")
   objectVersionId Int               @default(1) @map("object_version_id")
 
   // Relationships
@@ -675,11 +744,13 @@ model PaymentMethod {
   cashFlag        String?           @db.VarChar(1) @map("cash_flag")
   defaultFlag     String?           @db.VarChar(1) @map("default_flag")
   holdFlag        String?           @db.VarChar(1) @map("hold_flag")
+
+  // Tracking
   enabledFlag     Boolean           @default(true) @map("enabled_flag")
   createdBy       Int               @map("created_by")
-  createdDate    DateTime          @default(now()) @db.Timestamp(6) @map("created_date")         
+  createdDate     DateTime          @default(now()) @db.Timestamp(6) @map("created_date")         
   lastUpdatedBy   Int               @map("last_updated_by")
-  lastUpdatedDate  DateTime          @default(now()) @db.Timestamp(6) @updatedAt @map("last_updated_date")
+  lastUpdatedDate DateTime          @default(now()) @db.Timestamp(6) @updatedAt @map("last_updated_date")
   objectVersionId Int               @default(1) @map("object_version_id")
 
   // Relationships
@@ -695,11 +766,13 @@ model Invoice {
   description     String?           @db.VarChar(255)
   amount          Decimal           @db.Decimal(7, 3)
   currencyCode    String            @db.VarChar(3) @map("currency_code")
+
+  // Tracking
   enabledFlag     Boolean           @default(true) @map("enabled_flag")
   createdBy       Int               @map("created_by")
-  createdDate    DateTime          @default(now()) @db.Timestamp(6) @map("created_date")         
+  createdDate     DateTime          @default(now()) @db.Timestamp(6) @map("created_date")         
   lastUpdatedBy   Int               @map("last_updated_by")
-  lastUpdatedDate  DateTime          @default(now()) @db.Timestamp(6) @updatedAt @map("last_updated_date")
+  lastUpdatedDate DateTime          @default(now()) @db.Timestamp(6) @updatedAt @map("last_updated_date")
   objectVersionId Int               @default(1) @map("object_version_id")
 
   // Relationships
@@ -707,6 +780,39 @@ model Invoice {
   promotion       Promotion?        @relation(fields: [promotionId], references: [id], onDelete: NoAction, onUpdate: NoAction)
   payments        Payment[]
   @@map("invoices")
+}
+
+model Customer {
+  id              Int               @id @default(autoincrement())
+  customerNumber  String            @unique @db.VarChar(30) @default(uuid())  
+  mobileNumber    String            @unique @db.VarChar(30)
+  gender          String?           @db.VarChar(1)
+  identifyType    String?           @db.VarChar(1)
+  identifyNumber  String?           @db.VarChar(100)
+  description     String?           @db.VarChar(255)
+  registeredDate  DateTime?
+
+  // Tracking
+  enabledFlag     String            @db.VarChar(1)
+  holdFlag        String?           @db.VarChar(1)
+  
+  
+  
+  phoneNumber     String?           @db.VarChar(30)
+  address         String?           @db.VarChar(200)
+  // creditLimit      Decimal?  @db.Decimal(13, 2)
+  // childrenUnder18  String?   @db.VarChar(1)
+  // loginUser        String?   @unique @db.VarChar(20)
+  // loginPassword    String?   @db.VarChar(30)
+
+  createdBy       Int               @map("created_by")
+  createdDate     DateTime          @default(now()) @db.Timestamp(6) @map("created_date")         
+  lastUpdatedBy   Int               @map("last_updated_by")
+  lastUpdatedDate DateTime          @default(now()) @db.Timestamp(6) @updatedAt @map("last_updated_date")
+  objectVersionId Int               @default(1) @map("object_version_id")
+
+  // party            Party    @relation(fields: [partyId], references: [id])
+  orders          Order[]
 }
 
 enum Sex {
@@ -748,32 +854,4 @@ enum CashierType {
   @@map("cashier_type_enum")
 }
 
-// model Customer {
-//   id               Int       @id @default(autoincrement())
-//   partyId          Int
-//   customerNumber   String    @unique @db.VarChar(30)
-//   description      String?   @db.VarChar(255)
-//   registeredDate   DateTime?
-//   enabledFlag      String    @db.VarChar(1)
-//   holdFlag         String?   @db.VarChar(1)
-//   startDate        DateTime
-//   endDate          DateTime?
-//   gender           String?   @db.VarChar(1)
-//   identifierType   String?   @db.VarChar(1)
-//   identifierNumber String?   @db.VarChar(100)
-//   mobileNumber     String    @unique @db.VarChar(30)
-//   phoneNumber      String?   @db.VarChar(30)
-//   address          String?   @db.VarChar(200)
-//   creditLimit      Decimal?  @db.Decimal(13, 2)
-//   childrenUnder18  String?   @db.VarChar(1)
-//   loginUser        String?   @unique @db.VarChar(20)
-//   loginPassword    String?   @db.VarChar(30)
-//   createdBy        Int
-//   createdDate     DateTime
-//   lastUpdatedBy    Int
-//   lastUpdatedDate   DateTime
-//   objectVersionId  Int
 
-//   party            Party    @relation(fields: [partyId], references: [id])
-//   orders           Order[]
-// }

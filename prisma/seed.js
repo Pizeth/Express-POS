@@ -21,7 +21,7 @@ async function main() {
     create: {
       username: "razeth",
       email: "seth.razeth@gmail.com",
-      password: passwordUtils.hash("Cocacola1!", 12),
+      password: passwordUtils.hash("Kokakola1!", 12),
       avatar:
         "https://i.pinimg.com/736x/36/08/fe/3608fede746d1d6b429e58b945a90e1a.jpg",
       profile: {
