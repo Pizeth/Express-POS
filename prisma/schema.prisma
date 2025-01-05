@@ -334,7 +334,6 @@ model Product {
   subCategoryId   Int               @map("sub_category_id")
   manufacturerId  Int               @map("manufacturer_id")
   productTypeId   Int               @map("product_type_id")
-  cocktailId      Int?              @map("cocktail_id")
   productCode     String?           @unique @db.VarChar(30) @map("product_code")
   name            String            @unique @db.VarChar(200)
   shortName       String            @unique @db.VarChar(200) @map("short_name")
@@ -368,6 +367,7 @@ model Product {
   transactions    ProductTransaction[]
   orderLines      OrderLine[]
   stocks          Stock[]
+  CocktailDetail CocktailDetail[]
   
   @@map("products")
 }
@@ -387,6 +387,31 @@ model Cocktail {
   lastUpdatedBy   Int               @map("last_updated_by")
   lastUpdatedDate DateTime          @default(now()) @db.Timestamp(6) @updatedAt @map("last_updated_date")
   objectVersionId Int               @default(1) @map("object_version_id")
+
+  // Inverse relations
+  CocktailDetail CocktailDetail[]
+}
+
+model CocktailDetail {
+  id              Int               @id @default(autoincrement())
+  productId       Int
+  cocktailId      Int
+
+  // Optional: to track the quantity of each product in the cocktail
+  quantity        Decimal? @db.Decimal(10, 2) 
+
+  // Tracking
+  enabledFlag     Boolean           @default(true) @map("enabled_flag")
+  createdBy       Int               @map("created_by")
+  createdDate     DateTime          @default(now()) @db.Timestamp(6) @map("created_date")         
+  lastUpdatedBy   Int               @map("last_updated_by")
+  lastUpdatedDate DateTime          @default(now()) @db.Timestamp(6) @updatedAt @map("last_updated_date")
+  objectVersionId Int               @default(1) @map("object_version_id")
+
+  product         Product           @relation(fields: [productId], references: [id], onDelete: Cascade)
+  cocktail        Cocktail          @relation(fields: [cocktailId], references: [id], onDelete: Cascade)
+
+  @@map("cocktail_details")
 }
 
 model Stock {
