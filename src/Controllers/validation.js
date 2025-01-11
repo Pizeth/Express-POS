@@ -65,6 +65,9 @@ export class Validation {
         verifySmtp: true,
         timeout: 3000,
       });
+      console.log(validFormat);
+      console.log(validMx);
+      console.log(validSmtp);
 
       if (!validFormat || !validMx || !validSmtp) {
         return clientResponse(
