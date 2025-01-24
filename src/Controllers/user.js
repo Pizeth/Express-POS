@@ -140,6 +140,7 @@ export const getUserId = async (req, res, next) => {
 export const registerUser = async (req, res, next) => {
   try {
     const param = req.body;
+    console.log(param);
 
     // Validate required fields
     if (!param.username) {

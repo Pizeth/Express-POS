@@ -20,20 +20,36 @@ export class Validation {
   static async getUsername(req, res, next) {
     try {
       const { username } = req.params;
-      const result = await service.validateUsername(username);
-      if (!result) {
-        return clientResponse(
-          res,
-          statusCode.OK,
-          result,
-          `${username} is available.`
-        );
+
+      if (!username || username.length < 5) {
+        const message = !username
+          ? "Username cannot be empty!"
+          : "Username must be at least 5 characters!";
+        return clientResponse(res, statusCode.ACCEPTED, null, message);
       }
+
+      // const result = await service.validateUsername(username);
+      // if (!result) {
+      //   return clientResponse(
+      //     res,
+      //     statusCode.OK,
+      //     result,
+      //     `${username} is available.`
+      //   );
+      // }
+      // return clientResponse(
+      //   res,
+      //   statusCode.ACCEPTED,
+      //   result,
+      //   `${username} is already exists!.`
+      // );
+
+      const result = await service.validateUsername(username);
       return clientResponse(
         res,
-        statusCode.ACCEPTED,
+        result ? statusCode.ACCEPTED : statusCode.OK,
         result,
-        `${username} is already exists!.`
+        result ? `${username} already exists!.` : `${username} is available.`
       );
     } catch (error) {
       next(error);
