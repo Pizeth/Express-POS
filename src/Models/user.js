@@ -27,6 +27,8 @@ const roleSchema = z
   .optional()
   .default("USER");
 
+const usernameRegex = /^(?=.{5,50}$)[a-zA-Z](?!.*([_.])\1)[a-zA-Z0-9_.]*$/;
+
 // Zod schema for user validation
 export const UserSchema = z.object({
   id: z.coerce.number().int().nullable().optional(),
@@ -34,7 +36,11 @@ export const UserSchema = z.object({
     .string()
     .trim()
     .min(5, "Username must be at least 5 characters")
-    .max(50, "Username must be at most 50 characters"),
+    .max(50, "Username must be at most 50 characters")
+    .refine((username) => usernameRegex.test(username), {
+      message:
+        "Username must be at least 5 characters, start with a letter, and can contain letters, numbers, underscore, and dot!",
+    }),
   email: z.string().email("Invalid email format"),
   password: z.string().refine(
     (password) => {

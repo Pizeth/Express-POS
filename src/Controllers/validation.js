@@ -27,6 +27,16 @@ export class Validation {
           : "Username must be at least 5 characters!";
         return clientResponse(res, statusCode.ACCEPTED, null, message);
       }
+      const usernameRegex =
+        /^(?=.{5,50}$)[a-zA-Z](?!.*([_.])\1)[a-zA-Z0-9_.]*$/;
+      if (!usernameRegex.test(username)) {
+        return clientResponse(
+          res,
+          statusCode.ACCEPTED,
+          null,
+          "Invalid username format! Ensure it Starts with a letter Is 5-50 characters long Only uses letters, numbers, _, or ., No consecutive __ or .."
+        );
+      }
 
       // const result = await service.validateUsername(username);
       // if (!result) {
