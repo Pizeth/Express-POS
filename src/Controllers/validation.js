@@ -6,6 +6,7 @@
 import service from "../Services/validation.js";
 import { verifyEmail } from "@devmehq/email-validator-js";
 import { clientResponse } from "../Utils/responseHandler.js";
+import Utils from "../Utils/utils.js";
 import statusCode from "http-status-codes";
 import validator from "validator";
 
@@ -21,21 +22,24 @@ export class Validation {
     try {
       const { username } = req.params;
 
-      if (!username || username.length < 5) {
+      if (!username || username.length < 5 || username.length > 50) {
         const message = !username
-          ? "Username cannot be empty!"
-          : "Username must be at least 5 characters!";
+          ? Utils.getIMsg("Username cannot be empty", "❌", "❗")
+          : username.length < 5
+          ? Utils.getIMsg("Username must be at least 5 characters", "❌", "❗")
+          : Utils.getIMsg("Username cannot exceed 50 characters", "❌", "❗");
         return clientResponse(res, statusCode.ACCEPTED, null, message);
       }
+
       const usernameRegex =
         /^(?=.{5,50}$)[a-zA-Z](?!.*([_.])\1)[a-zA-Z0-9_.]*$/;
       if (!usernameRegex.test(username)) {
-        return clientResponse(
-          res,
-          statusCode.ACCEPTED,
-          null,
-          "Invalid username format! Ensure it Starts with a letter Is 5-50 characters long Only uses letters, numbers, _, or ., No consecutive __ or .."
+        const message = Utils.getIMsg(
+          "Username must begin with a letter (a-z, A-Z) and only include letters, numbers, underscores (_), or dots (.), No consecutive __ or ..",
+          "❌",
+          "❗"
         );
+        return clientResponse(res, statusCode.ACCEPTED, null, message);
       }
 
       // const result = await service.validateUsername(username);
@@ -59,7 +63,9 @@ export class Validation {
         res,
         result ? statusCode.ACCEPTED : statusCode.OK,
         result,
-        result ? `${username} already exists!.` : `${username} is available.`
+        result
+          ? Utils.getIMsg(`${username} already exists!.`, "⭕", "✔️")
+          : Utils.getIMsg(`${username} is available.`, "⭕", "✔️")
       );
     } catch (error) {
       next(error);
